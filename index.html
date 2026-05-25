@@ -336,17 +336,29 @@
     };
 
     document.getElementById('btn-restart-game').onclick = () => {
-        // 1. 抓取目前的玩家連線狀態，避免被洗掉
-        const currentPlayers = dbState.players || [null, null, null];
+        // 改用 update 來針對性地重設遊戲狀態，完全不碰 players 陣列
+        const updates = {
+            "cards/p0": [],
+            "cards/p1": [],
+            "cards/p2": [],
+            "cards/desk": [],
+            "cards/dipai": [],
+            "history": ["無", "無", "無"],
+            "gameState": "waiting",
+            "currentTurn": 0,
+            "landlord": -1,
+            "callCount": 0,
+            "passCount": 0,
+            "highestBid": 0,
+            "highestBidder": -1,
+            "winner": -1,
+            "lastPattern": "無",
+            "bombCount": 0,
+            "logs": "等待發牌中..."
+        };
         
-        // 2. 複製一份乾淨的初始狀態
-        const resetState = JSON.parse(JSON.stringify(initialGameState));
-        
-        // 3. 把真人玩家的狀態塞回去，保持連線
-        resetState.players = currentPlayers;
-        
-        // 4. 更新到資料庫
-        set(roomRef, resetState).then(() => {
+        // 直接更新特定欄位，確保你的真人連線身分不會被洗掉
+        update(roomRef, updates).then(() => {
             document.getElementById('game-over-overlay').style.display = 'none';
         });
     };
