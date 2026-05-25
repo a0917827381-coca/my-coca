@@ -659,12 +659,43 @@
         const myHandCards = dbState.cards[`p${mySeat}`] || [];
         const playCards = selectedCards.map(idx => myHandCards[idx]);
         
+        // 1. 檢查自己選的牌是不是合法的鬥地主牌型
         const currentPattern = analyzeCardPattern(playCards);
         if (currentPattern.type === "不合法牌型") {
             alert("⚠️ 選擇的卡牌不符合任何合法的鬥地主牌型，請重新選牌！");
             return;
         }
 
+        // 2. 檢查是否能壓過桌上的牌 (如果桌上已經有牌的話)
+        const deskCards = dbState.cards?.desk || [];
+        if (deskCards.length > 0) {
+            const deskPattern = analyzeCardPattern(deskCards);
+            let isValidPlay = false;
+
+            if (currentPattern.type === "🚀 火箭 (王炸)") {
+                isValidPlay = true; // 王炸無敵
+            } else if (currentPattern.type === "💥 炸彈 💥") {
+                if (deskPattern.type !== "💥 炸彈 💥" && deskPattern.type !== "🚀 火箭 (王炸)") {
+                    isValidPlay = true; // 炸彈可以壓一般牌
+                } else if (deskPattern.type === "💥 炸彈 💥" && currentPattern.weight > deskPattern.weight) {
+                    isValidPlay = true; // 大炸彈壓小炸彈
+                }
+            } else {
+                // 核心規則：牌型必須相同、張數必須相同，且權重必須「大於」對方 (等於代表平手，花色不列入計算)
+                if (currentPattern.type === deskPattern.type && 
+                    playCards.length === deskCards.length && 
+                    currentPattern.weight > deskPattern.weight) {
+                    isValidPlay = true;
+                }
+            }
+
+            if (!isValidPlay) {
+                alert(`⚠️ 你的出牌無法壓制桌上牌型！\n(桌上是 ${deskPattern.type}，你必須出更大的同類牌型或炸彈)`);
+                return; // 直接擋下，不允許出牌
+            }
+        }
+
+        // 3. 驗證通過，執行出牌更新流程
         const remainingCards = myHandCards.filter((_, idx) => !selectedCards.includes(idx));
         selectedCards = [];
 
