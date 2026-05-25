@@ -336,7 +336,17 @@
     };
 
     document.getElementById('btn-restart-game').onclick = () => {
-        set(roomRef, initialGameState).then(() => {
+        // 1. 抓取目前的玩家連線狀態，避免被洗掉
+        const currentPlayers = dbState.players || [null, null, null];
+        
+        // 2. 複製一份乾淨的初始狀態
+        const resetState = JSON.parse(JSON.stringify(initialGameState));
+        
+        // 3. 把真人玩家的狀態塞回去，保持連線
+        resetState.players = currentPlayers;
+        
+        // 4. 更新到資料庫
+        set(roomRef, resetState).then(() => {
             document.getElementById('game-over-overlay').style.display = 'none';
         });
     };
