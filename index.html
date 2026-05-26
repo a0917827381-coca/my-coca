@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>連線鬥地主-智能切換切牌版</title>
+    <title>連線鬥地主-無BUG實戰版</title>
     <style>
-        /* === 基礎重置與全螢幕設定 === */
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #143520; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         
         #seat-selection { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,25,15,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; box-sizing: border-box; }
@@ -171,7 +170,7 @@
 
     let savedSeat = sessionStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
-    let smartComboState = {}; // 💡 記錄每種牌型的切換進度 (例如 1/2, 2/2)
+    let smartComboState = {}; 
 
     window.addEventListener('beforeunload', () => {
         if (mySeat !== -1) {
@@ -180,20 +179,10 @@
     });
 
     const initialGameState = {
-        players: [null, null, null],
-        cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
-        history: ["無", "無", "無"], 
-        logs: "請選位開局，斷線時電腦將自動接管",
-        gameState: "waiting", 
-        currentTurn: 0,
-        landlord: -1,
-        callCount: 0,
-        passCount: 0,
-        highestBid: 0,      
-        highestBidder: -1,   
-        winner: -1,
-        lastPattern: "無",
-        bombCount: 0 
+        players: [null, null, null], cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
+        history: ["無", "無", "無"], logs: "請選位開局，斷線時電腦將自動接管", gameState: "waiting", 
+        currentTurn: 0, landlord: -1, callCount: 0, passCount: 0, highestBid: 0, highestBidder: -1,   
+        winner: -1, lastPattern: "無", bombCount: 0 
     };
     
     let dbState = JSON.parse(JSON.stringify(initialGameState));
@@ -212,24 +201,13 @@
         }
     }
 
-    // =========================================================================
-    // 🧠 核心掃描引擎升級 (改為回傳所有可能陣列，支援 UI 切換)
-    // =========================================================================
     function getAllStraights(hand, length, minWeight) {
         const weightMap = {};
-        hand.forEach(c => {
-            const w = cardWeights[c.num];
-            if(w <= 14) {
-                if(!weightMap[w]) weightMap[w] = [];
-                weightMap[w].push(c);
-            }
-        });
+        hand.forEach(c => { const w = cardWeights[c.num]; if(w <= 14) { if(!weightMap[w]) weightMap[w] = []; weightMap[w].push(c); }});
         const results = [];
         for(let w = minWeight + 1; w <= 14 - length + 1; w++) {
             let valid = true;
-            for(let i = 0; i < length; i++) {
-                if(!weightMap[w + i] || weightMap[w + i].length === 0) { valid = false; break; }
-            }
+            for(let i = 0; i < length; i++) { if(!weightMap[w + i] || weightMap[w + i].length === 0) { valid = false; break; } }
             if(valid) {
                 const res = [];
                 for(let i = 0; i < length; i++) res.push(weightMap[w + i][0]);
@@ -242,24 +220,14 @@
     function getAllConsecutivePairs(hand, length, minWeight) {
         const pairCount = length / 2;
         const weightMap = {};
-        hand.forEach(c => {
-            const w = cardWeights[c.num];
-            if(w <= 14) {
-                if(!weightMap[w]) weightMap[w] = [];
-                weightMap[w].push(c);
-            }
-        });
+        hand.forEach(c => { const w = cardWeights[c.num]; if(w <= 14) { if(!weightMap[w]) weightMap[w] = []; weightMap[w].push(c); }});
         const results = [];
         for(let w = minWeight + 1; w <= 14 - pairCount + 1; w++) {
             let valid = true;
-            for(let i = 0; i < pairCount; i++) {
-                if(!weightMap[w + i] || weightMap[w + i].length < 2) { valid = false; break; }
-            }
+            for(let i = 0; i < pairCount; i++) { if(!weightMap[w + i] || weightMap[w + i].length < 2) { valid = false; break; } }
             if(valid) {
                 const res = [];
-                for(let i = 0; i < pairCount; i++) {
-                    res.push(weightMap[w + i][0], weightMap[w + i][1]);
-                }
+                for(let i = 0; i < pairCount; i++) { res.push(weightMap[w + i][0], weightMap[w + i][1]); }
                 results.push(res);
             }
         }
@@ -267,15 +235,12 @@
     }
 
     function getAllThreeWithPairs(hand, minWeight) {
-        const counts = {};
-        hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+        const counts = {}; hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
         const results = [];
-        
         const tripleKeys = Object.keys(counts).filter(k => counts[k] >= 3 && cardWeights[k] > minWeight);
         if (tripleKeys.length > 0) {
             const sortedTriples = tripleKeys.sort((a, b) => cardWeights[a] - cardWeights[b]);
             for (const tKey of sortedTriples) {
-                // 找出所有可以搭配的對子，讓玩家可以切換
                 const pairKeys = Object.keys(counts).filter(k => counts[k] >= 2 && k !== tKey).sort((a, b) => cardWeights[a] - cardWeights[b]);
                 for (const pKey of pairKeys) {
                     const tripleCards = hand.filter(c => c.num === tKey).slice(0, 3);
@@ -288,16 +253,11 @@
     }
 
     function getAllBombs(hand, minWeight) {
-        const counts = {};
-        hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+        const counts = {}; hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
         const results = [];
-        
         const bombKeys = Object.keys(counts).filter(k => counts[k] === 4 && (100 + cardWeights[k]) > minWeight).sort((a, b) => cardWeights[a] - cardWeights[b]);
         bombKeys.forEach(bKey => results.push(hand.filter(c => c.num === bKey)));
-        
-        if (minWeight < 999 && counts['小'] && counts['大']) {
-            results.push(hand.filter(c => c.num === '小' || c.num === '大'));
-        }
+        if (minWeight < 999 && counts['小'] && counts['大']) { results.push(hand.filter(c => c.num === '小' || c.num === '大')); }
         return results;
     }
 
@@ -308,10 +268,8 @@
 
         if (len === 2 && sorted[0].num === "小" && sorted[1].num === "大") return { type: "🚀 火箭 (王炸)", weight: 999 };
 
-        const counts = {};
-        sorted.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
-        const valCount = Object.values(counts);
-        const keys = Object.keys(counts);
+        const counts = {}; sorted.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+        const valCount = Object.values(counts); const keys = Object.keys(counts);
 
         if (len === 4 && valCount.includes(4)) return { type: "💥 炸彈 💥", weight: 100 + cardWeights[keys[0]] };
         if (len === 1) return { type: "單張", weight: cardWeights[sorted[0].num] };
@@ -358,20 +316,12 @@
             set(roomRef, initialGameState);
         } else {
             dbState = {
-                players: sanitizePlayers(data.players),
-                cards: data.cards || { p0: [], p1: [], p2: [], desk: [], dipai: [] },
-                history: data.history || ["無", "無", "無"],
-                logs: data.logs || "遊戲進行中",
-                gameState: data.gameState || "waiting",
-                currentTurn: typeof data.currentTurn === 'number' ? data.currentTurn : 0,
-                landlord: typeof data.landlord === 'number' ? data.landlord : -1,
-                callCount: typeof data.callCount === 'number' ? data.callCount : 0,
-                passCount: typeof data.passCount === 'number' ? data.passCount : 0,
-                highestBid: typeof data.highestBid === 'number' ? data.highestBid : 0,
-                highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1,
-                winner: typeof data.winner === 'number' ? data.winner : -1,
-                lastPattern: data.lastPattern || "無",
-                bombCount: typeof data.bombCount === 'number' ? data.bombCount : 0
+                players: sanitizePlayers(data.players), cards: data.cards || { p0: [], p1: [], p2: [], desk: [], dipai: [] },
+                history: data.history || ["無", "無", "無"], logs: data.logs || "遊戲進行中", gameState: data.gameState || "waiting",
+                currentTurn: typeof data.currentTurn === 'number' ? data.currentTurn : 0, landlord: typeof data.landlord === 'number' ? data.landlord : -1,
+                callCount: typeof data.callCount === 'number' ? data.callCount : 0, passCount: typeof data.passCount === 'number' ? data.passCount : 0,
+                highestBid: typeof data.highestBid === 'number' ? data.highestBid : 0, highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1,
+                winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", bombCount: typeof data.bombCount === 'number' ? data.bombCount : 0
             };
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
@@ -402,24 +352,18 @@
             "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
             "lastPattern": "無", "bombCount": 0, "logs": "等待發牌中..."
         };
-        update(roomRef, updates).then(() => {
-            document.getElementById('game-over-overlay').style.display = 'none';
-        });
+        update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
 
     window.join = function(seatIdx) {
         const currentPlayers = dbState?.players || [null, null, null];
         if (currentPlayers[seatIdx] === "online") { alert("此座位已被真人選擇！"); return; }
-        mySeat = seatIdx;
-        sessionStorage.setItem('mySeat', mySeat); 
+        mySeat = seatIdx; sessionStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
         onDisconnect(myPlayerRef).set("bot").then(() => {
-            const updates = {};
-            updates[`players/${seatIdx}`] = "online";
-            update(roomRef, updates).then(() => {
-                document.getElementById('seat-selection').style.display = 'none';
-            });
+            const updates = {}; updates[`players/${seatIdx}`] = "online";
+            update(roomRef, updates).then(() => { document.getElementById('seat-selection').style.display = 'none'; });
         });
     };
 
@@ -429,8 +373,7 @@
 
     function triggerEffectPopup(patternName) {
         const popup = document.getElementById('pattern-effect-popup');
-        popup.innerText = patternName;
-        popup.style.display = 'block';
+        popup.innerText = patternName; popup.style.display = 'block';
         setTimeout(() => { popup.style.display = 'none'; }, 2000);
     }
 
@@ -454,10 +397,7 @@
 
         const historyBox = document.getElementById('history-box');
         const hist = dbState.history || ["無", "無", "無"];
-        const p0Count = dbState.cards?.p0 ? dbState.cards.p0.length : 0;
-        const p1Count = dbState.cards?.p1 ? dbState.cards.p1.length : 0;
-        const p2Count = dbState.cards?.p2 ? dbState.cards.p2.length : 0;
-        const counts = [p0Count, p1Count, p2Count];
+        const counts = [dbState.cards?.p0?.length || 0, dbState.cards?.p1?.length || 0, dbState.cards?.p2?.length || 0];
 
         let historyHTML = "";
         for(let i = 0; i < 3; i++) {
@@ -476,8 +416,7 @@
             dipaiCards.forEach(card => {
                 const cardEl = document.createElement('div');
                 cardEl.className = `mini-dipai-card ${['♥','♦'].includes(card.suit) ? 'red' : ''}`;
-                cardEl.innerText = card.suit + card.num;
-                miniDipaiBox.appendChild(cardEl);
+                cardEl.innerText = card.suit + card.num; miniDipaiBox.appendChild(cardEl);
             });
         }
 
@@ -487,9 +426,7 @@
             largeDipaiBox.style.display = 'flex';
             for(let i=0; i<3; i++) {
                 const cardEl = document.createElement('div');
-                cardEl.className = "large-dipai-card";
-                cardEl.innerText = "?";
-                largeDipaiBox.appendChild(cardEl);
+                cardEl.className = "large-dipai-card"; cardEl.innerText = "?"; largeDipaiBox.appendChild(cardEl);
             }
         } else { largeDipaiBox.style.display = 'none'; }
 
@@ -500,13 +437,10 @@
             const winDesc = document.getElementById('result-desc');
             const scoreBoard = document.getElementById('result-scores');
             
-            const winSeat = dbState.winner;
-            const landSeat = dbState.landlord;
-            const isWinnerLandlord = (winSeat === landSeat);
-            const amILandlord = (mySeat === landSeat);
+            const winSeat = dbState.winner; const landSeat = dbState.landlord;
+            const isWinnerLandlord = (winSeat === landSeat); const amILandlord = (mySeat === landSeat);
             
-            const finalAmount = 100 * currentMultiplier;
-            let scores = [0, 0, 0];
+            const finalAmount = 100 * currentMultiplier; let scores = [0, 0, 0];
             
             if (isWinnerLandlord) {
                 scores[landSeat] = finalAmount * 2; scores[(landSeat+1)%3] = -finalAmount; scores[(landSeat+2)%3] = -finalAmount;
@@ -517,14 +451,11 @@
                 winDesc.innerText = `農民 (玩家 ${winSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = !amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             }
-            
             winTitle.className = (isWinnerLandlord && amILandlord) || (!isWinnerLandlord && !amILandlord) ? "result-title win" : "result-title lose";
             
             scoreBoard.innerHTML = scores.map((score, idx) => {
-                const isMe = idx === mySeat ? "(你)" : "";
-                const role = idx === landSeat ? "👑" : "🌾";
-                const sign = score > 0 ? "+" : "";
-                const colorClass = score > 0 ? "score-pos" : "score-neg";
+                const isMe = idx === mySeat ? "(你)" : ""; const role = idx === landSeat ? "👑" : "🌾";
+                const sign = score > 0 ? "+" : ""; const colorClass = score > 0 ? "score-pos" : "score-neg";
                 return `<div class="score-row"><span>${role} P${idx+1} ${isMe}</span><span class="${colorClass}">${sign}${score}</span></div>`;
             }).join('');
         } else { gameOverOverlay.style.display = 'none'; }
@@ -552,7 +483,7 @@
         myHand.sort((a,b) => cardWeights[a.num] - cardWeights[b.num]);
 
         // =========================================================
-        // 💡 智能一鍵選牌系統 (支援動態選項切換)
+        // 💡 智能一鍵選牌系統 (已修正 idx 變數衝突 BUG)
         // =========================================================
         const smartActionsZone = document.getElementById('smart-actions');
         smartActionsZone.innerHTML = "";
@@ -561,7 +492,6 @@
             const combos = [];
             
             if (deskCards.length === 0) {
-                // 首發：尋找所有可能的長牌與組合
                 for(let len = 12; len >= 5; len--) {
                     const res = getAllStraights(myHand, len, 2);
                     if (res.length > 0) { combos.push({ name: `✨ 順子`, options: res }); break; }
@@ -577,7 +507,6 @@
                 if (resBomb.length > 0) combos.push({ name: `💥 炸彈`, options: resBomb });
                 
             } else {
-                // 跟牌：依照桌上牌型尋找大於對方的所有組合
                 const deskPattern = analyzeCardPattern(deskCards);
                 if (deskPattern.type === "順子") {
                     const res = getAllStraights(myHand, deskCards.length, deskPattern.weight);
@@ -597,20 +526,16 @@
                 }
             }
 
-            // 渲染按鈕與切換邏輯
             combos.forEach(combo => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-smart';
                 
-                // 確保狀態計數器合法 (如果手牌變動導致選項變少，重置為 0)
                 if (smartComboState[combo.name] === undefined || smartComboState[combo.name] >= combo.options.length) {
                     smartComboState[combo.name] = 0;
                 }
                 
                 const currentIdx = smartComboState[combo.name];
                 const optCount = combo.options.length;
-                
-                // 如果有多種組合，按鈕上顯示 (1/2), (2/2) 讓玩家知道可以切換
                 btn.innerText = combo.name + (optCount > 1 ? ` (${currentIdx + 1}/${optCount})` : "");
                 
                 btn.onclick = () => {
@@ -618,7 +543,7 @@
                     const currentOption = combo.options[currentIdx];
                     
                     currentOption.forEach(cc => {
-                        // 【修正】：加入 (hc, idx) 才能讓 includes 抓到正確的 index
+                        // ✨ 真正的解藥在這裡：加入 idx 參數，徹底解決 ReferenceError 崩潰
                         const handIdx = myHand.findIndex((hc, idx) => hc.suit === cc.suit && hc.num === cc.num && !selectedCards.includes(idx));
                         if (handIdx > -1) selectedCards.push(handIdx);
                     });
@@ -655,8 +580,7 @@
     }
 
     function dealCards() {
-        isAIThinking = false;
-        smartComboState = {}; // 重新洗牌時清空智能切換記憶
+        isAIThinking = false; smartComboState = {}; 
         const currentPlayers = sanitizePlayers(dbState.players);
         const updatedPlayers = currentPlayers.map(p => p === "online" ? "online" : "bot");
 
@@ -701,18 +625,14 @@
 
             if (finalScore === 0) {
                 updates[`logs`] = "三位玩家皆不叫分，本局流局！正在重新洗牌...";
-                update(roomRef, updates);
-                setTimeout(() => { dealCards(); }, 2000);
-                return;
+                update(roomRef, updates); setTimeout(() => { dealCards(); }, 2000); return;
             } else {
-                const landlordIdx = finalBidder;
-                const currentHand = dbState.cards[`p${landlordIdx}`] || [];
+                const landlordIdx = finalBidder; const currentHand = dbState.cards[`p${landlordIdx}`] || [];
                 updates[`cards/p${landlordIdx}`] = [...currentHand, ...(dbState.cards.dipai || [])];
                 updates[`landlord`] = landlordIdx; updates[`gameState`] = "playing";
                 updates[`currentTurn`] = landlordIdx; updates[`passCount`] = 0;
                 updates[`logs`] = `競標結束！玩家 ${landlordIdx + 1} 以 ${finalScore} 分成為地主！`;
-                update(roomRef, updates);
-                return;
+                update(roomRef, updates); return;
             }
         }
         updates[`currentTurn`] = nextTurn; updates[`logs`] += ` 輪到 玩家 ${nextTurn + 1} 叫分。`;
@@ -739,18 +659,14 @@
             } else {
                 if (currentPattern.type === deskPattern.type && playCards.length === deskCards.length && currentPattern.weight > deskPattern.weight) { isValidPlay = true; }
             }
-
             if (!isValidPlay) { alert(`⚠️ 你的出牌無法壓制桌上牌型！\n(桌上是 ${deskPattern.type}，你必須出更大的同類牌型或炸彈)`); return; }
         }
 
         const remainingCards = myHandCards.filter((_, idx) => !selectedCards.includes(idx));
-        selectedCards = [];
-        smartComboState = {}; // 出牌後重置切換記憶
+        selectedCards = []; smartComboState = {}; 
         
-        const nextTurn = (dbState.currentTurn + 1) % 3;
-        const updates = {};
-        updates[`cards/p${mySeat}`] = remainingCards;
-        updates[`cards/desk`] = playCards;
+        const nextTurn = (dbState.currentTurn + 1) % 3; const updates = {};
+        updates[`cards/p${mySeat}`] = remainingCards; updates[`cards/desk`] = playCards;
         
         const cardsText = playCards.map(c => `${c.suit}${c.num}`).join(' ');
         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(currentPattern.type)) {
@@ -767,12 +683,9 @@
     };
 
     document.getElementById('btn-pass').onclick = () => {
-        selectedCards = [];
-        smartComboState = {}; // 不出牌也重置切換記憶
-        const nextTurn = (dbState.currentTurn + 1) % 3;
-        const currentPassCount = dbState.passCount + 1;
-        const updates = {};
-        updates[`history/${mySeat}`] = "不出";
+        selectedCards = []; smartComboState = {}; 
+        const nextTurn = (dbState.currentTurn + 1) % 3; const currentPassCount = dbState.passCount + 1;
+        const updates = {}; updates[`history/${mySeat}`] = "不出";
 
         if (currentPassCount >= 2) {
             updates[`cards/desk`] = []; updates[`passCount`] = 0; updates[`currentTurn`] = nextTurn; 
@@ -784,22 +697,22 @@
         update(roomRef, updates);
     };
 
-    // 🤖 AI 邏輯適應連線引擎 (防腦裂修正)
+    // =========================================================
+    // 🤖 AI 邏輯適應連線引擎 (已加入 Host 權限判斷，防腦裂)
+    // =========================================================
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
         if (dbState.gameState === "gameOver") return;
 
-        // 【修正】：找出在線玩家中，座位號碼最小的當作「主機 (Host)」
+        // ✨ 選出房間主機，統一由主機的瀏覽器來幫電腦下棋
         const onlinePlayers = playersList.map((p, index) => p === "online" ? index : -1).filter(i => i !== -1);
         const isHost = onlinePlayers.length > 0 && onlinePlayers[0] === mySeat;
 
-        // 只有輪到電腦，且「我」是主機時，才允許執行 AI 運算
         if (playersList[activeTurn] === "bot" && isHost && !isAIThinking) {
             isAIThinking = true; 
 
             if (dbState.gameState === "calling") {
-
                 setTimeout(() => {
                     const aiHand = dbState.cards ? (dbState.cards[`p${activeTurn}`] || []) : [];
                     let handPower = 0; const aiCounts = {};
