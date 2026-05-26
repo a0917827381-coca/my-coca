@@ -3,21 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>連線鬥地主-最終進化版</title>
+    <title>連線鬥地主-智能切換切牌版</title>
     <style>
         /* === 基礎重置與全螢幕設定 === */
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #143520; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         
-        /* === 選位畫面 UI === */
         #seat-selection { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,25,15,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; box-sizing: border-box; }
         .seat-btn { background: #1976d2; color: white; padding: 16px 30px; border-radius: 30px; margin: 12px; width: 85%; max-width: 350px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .seat-btn:disabled { background: #444; opacity: 0.5; }
         .reset-btn { background: #d32f2f; color: white; padding: 12px 24px; border-radius: 20px; border: none; margin-top: 30px; cursor: pointer; font-size: 14px; font-weight: bold; }
         
-        /* === 主遊戲區塊 === */
         .app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; justify-content: space-between; position: relative; }
         
-        /* === 頂部資訊列 (Header) === */
         .header { background: rgba(0,0,0,0.8); padding: 8px 12px; font-size: 13px; border-bottom: 2px solid #2e7d32; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         #log { color: #a5d6a7; font-weight: bold; font-size: 14px; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -29,11 +26,9 @@
         .mini-dipai-card { width: 24px; height: 35px; background: #fff; color: #000; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .mini-dipai-card.red { color: #e53935; }
 
-        /* === 歷史紀錄區 === */
         .history-panel { display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 6px; font-size: 12px; gap: 5px; }
         .history-item { color: #ffb74d; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 33%; }
         
-        /* === 桌面發牌與出牌區 === */
         .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; width: 100%; }
         .large-dipai-area { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 8px 16px; border-radius: 8px; }
         .large-dipai-card { width: 45px; height: 65px; background: #fff; color: #000; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
@@ -43,7 +38,6 @@
 
         .play-container { display: flex; gap: 6px; min-height: 110px; align-items: center; justify-content: center; width: 100%; flex-wrap: wrap; }
         
-        /* === 卡牌共用樣式 === */
         .card { 
             width: 68px; height: 105px; background: #ffffff; color: #111111; border-radius: 8px; 
             box-shadow: 2px 4px 8px rgba(0,0,0,0.4); display: flex; flex-direction: column; 
@@ -55,29 +49,24 @@
         .card.red { color: #e53935; }
         .card.selected { transform: translateY(-24px) scale(1.05); background: #e3f2fd; border-color: #2196f3; box-shadow: 0 10px 20px rgba(33,150,243,0.4); }
         
-        /* === 智能選牌按鈕 === */
         .smart-actions { display: flex; justify-content: center; gap: 8px; margin-bottom: -10px; min-height: 35px; z-index: 10; position: relative; }
         .btn-smart { background: #9c27b0; color: white; border: 2px solid #e1bee7; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); animation: pulse 1.5s infinite alternate; }
         .btn-smart:active { transform: scale(0.95); }
         @keyframes pulse { from { box-shadow: 0 4px 10px rgba(156,39,176,0.4); } to { box-shadow: 0 4px 20px rgba(156,39,176,0.8); } }
 
-        /* === 玩家手牌區 === */
         .hand-container { display: flex; justify-content: center; align-items: flex-end; width: 100%; height: 145px; padding: 0 15px; box-sizing: border-box; margin-bottom: 5px; }
         .hand-container .card { margin-left: -42px; } 
         .hand-container .card:first-child { margin-left: 0; }
         
-        /* === 控制按鈕區 === */
         .controls { display: flex; gap: 8px; padding-bottom: 15px; justify-content: center; width: 100%; z-index: 999; min-height: 50px; flex-wrap: wrap; }
         .btn-xl { padding: 12px 16px; border-radius: 25px; border: none; background: #4caf50; color: white; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3); min-width: 70px; }
         .btn-xl:disabled { background: #555 !important; opacity: 0.4; cursor: not-allowed; box-shadow: none; }
         .btn-xl.danger-btn { background: #f44336; }
         .btn-xl.info-btn { background: #00bcd4; }
         
-        /* === 提示與覆蓋層 === */
         #mobile-notice-overlay { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 183, 77, 0.95); color: #000; padding: 10px 24px; border-radius: 30px; font-weight: 900; font-size: 18px; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); z-index: 1000; border: 3px solid #fff; pointer-events: none; display: none; animation: bounce 0.5s infinite alternate; }
         @keyframes bounce { from { transform: translate(-50%, -55%); } to { transform: translate(-50%, -45%); } }
 
-        /* === 遊戲結算畫面與計分板 === */
         #game-over-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
         .result-title { font-size: 32px; font-weight: 900; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .result-title.win { color: #ffeb3b; }
@@ -182,6 +171,7 @@
 
     let savedSeat = sessionStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
+    let smartComboState = {}; // 💡 記錄每種牌型的切換進度 (例如 1/2, 2/2)
 
     window.addEventListener('beforeunload', () => {
         if (mySeat !== -1) {
@@ -222,8 +212,10 @@
         }
     }
 
-    // --- 長牌掃描引擎 (智能按鈕與 AI 共用) ---
-    function getStraight(hand, length, minWeight) {
+    // =========================================================================
+    // 🧠 核心掃描引擎升級 (改為回傳所有可能陣列，支援 UI 切換)
+    // =========================================================================
+    function getAllStraights(hand, length, minWeight) {
         const weightMap = {};
         hand.forEach(c => {
             const w = cardWeights[c.num];
@@ -232,6 +224,7 @@
                 weightMap[w].push(c);
             }
         });
+        const results = [];
         for(let w = minWeight + 1; w <= 14 - length + 1; w++) {
             let valid = true;
             for(let i = 0; i < length; i++) {
@@ -240,13 +233,13 @@
             if(valid) {
                 const res = [];
                 for(let i = 0; i < length; i++) res.push(weightMap[w + i][0]);
-                return res;
+                results.push(res);
             }
         }
-        return null;
+        return results;
     }
 
-    function getConsecutivePairs(hand, length, minWeight) {
+    function getAllConsecutivePairs(hand, length, minWeight) {
         const pairCount = length / 2;
         const weightMap = {};
         hand.forEach(c => {
@@ -256,6 +249,7 @@
                 weightMap[w].push(c);
             }
         });
+        const results = [];
         for(let w = minWeight + 1; w <= 14 - pairCount + 1; w++) {
             let valid = true;
             for(let i = 0; i < pairCount; i++) {
@@ -266,49 +260,46 @@
                 for(let i = 0; i < pairCount; i++) {
                     res.push(weightMap[w + i][0], weightMap[w + i][1]);
                 }
-                return res;
+                results.push(res);
             }
         }
-        return null;
+        return results;
     }
-    function getThreeWithPair(hand, minWeight) {
+
+    function getAllThreeWithPairs(hand, minWeight) {
         const counts = {};
         hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+        const results = [];
         
         const tripleKeys = Object.keys(counts).filter(k => counts[k] >= 3 && cardWeights[k] > minWeight);
         if (tripleKeys.length > 0) {
-            // 從最小的合法三條開始找
             const sortedTriples = tripleKeys.sort((a, b) => cardWeights[a] - cardWeights[b]);
             for (const tKey of sortedTriples) {
-                // 找一個對子來帶 (不能是剛剛選的三條)
-                const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && k !== tKey);
-                if (pairKey) {
+                // 找出所有可以搭配的對子，讓玩家可以切換
+                const pairKeys = Object.keys(counts).filter(k => counts[k] >= 2 && k !== tKey).sort((a, b) => cardWeights[a] - cardWeights[b]);
+                for (const pKey of pairKeys) {
                     const tripleCards = hand.filter(c => c.num === tKey).slice(0, 3);
-                    const pairCards = hand.filter(c => c.num === pairKey).slice(0, 2);
-                    return [...tripleCards, ...pairCards];
+                    const pairCards = hand.filter(c => c.num === pKey).slice(0, 2);
+                    results.push([...tripleCards, ...pairCards]);
                 }
             }
         }
-        return null;
+        return results;
     }
 
-    function getBomb(hand, minWeight) {
+    function getAllBombs(hand, minWeight) {
         const counts = {};
         hand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+        const results = [];
         
-        // 1. 找一般炸彈
-        const bombKeys = Object.keys(counts).filter(k => counts[k] === 4 && (100 + cardWeights[k]) > minWeight);
-        if (bombKeys.length > 0) {
-            const bestBomb = bombKeys.sort((a, b) => cardWeights[a] - cardWeights[b])[0];
-            return hand.filter(c => c.num === bestBomb);
-        }
+        const bombKeys = Object.keys(counts).filter(k => counts[k] === 4 && (100 + cardWeights[k]) > minWeight).sort((a, b) => cardWeights[a] - cardWeights[b]);
+        bombKeys.forEach(bKey => results.push(hand.filter(c => c.num === bKey)));
         
-        // 2. 找王炸 (火箭)
         if (minWeight < 999 && counts['小'] && counts['大']) {
-            return hand.filter(c => c.num === '小' || c.num === '大');
+            results.push(hand.filter(c => c.num === '小' || c.num === '大'));
         }
-        return null;
-    }    
+        return results;
+    }
 
     function analyzeCardPattern(cards) {
         if (!cards || cards.length === 0) return { type: "無", weight: 0 };
@@ -404,26 +395,12 @@
         }
     };
 
-    // 精準還原機制：不影響連線玩家
     document.getElementById('btn-restart-game').onclick = () => {
         const updates = {
-            "cards/p0": [],
-            "cards/p1": [],
-            "cards/p2": [],
-            "cards/desk": [],
-            "cards/dipai": [],
-            "history": ["無", "無", "無"],
-            "gameState": "waiting",
-            "currentTurn": 0,
-            "landlord": -1,
-            "callCount": 0,
-            "passCount": 0,
-            "highestBid": 0,
-            "highestBidder": -1,
-            "winner": -1,
-            "lastPattern": "無",
-            "bombCount": 0,
-            "logs": "等待發牌中..."
+            "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
+            "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
+            "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
+            "lastPattern": "無", "bombCount": 0, "logs": "等待發牌中..."
         };
         update(roomRef, updates).then(() => {
             document.getElementById('game-over-overlay').style.display = 'none';
@@ -433,11 +410,9 @@
     window.join = function(seatIdx) {
         const currentPlayers = dbState?.players || [null, null, null];
         if (currentPlayers[seatIdx] === "online") { alert("此座位已被真人選擇！"); return; }
-        
         mySeat = seatIdx;
         sessionStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
-        
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
         onDisconnect(myPlayerRef).set("bot").then(() => {
             const updates = {};
@@ -477,7 +452,6 @@
         document.getElementById('multiplier-badge').innerText = `${currentMultiplier} 倍`;
         document.getElementById('landlord-identity').innerText = dbState.landlord !== -1 ? `👑 P${dbState.landlord + 1}` : `叫分: ${dbState.highestBid}`;
 
-        // 更新歷史紀錄與剩餘牌數紅色警報
         const historyBox = document.getElementById('history-box');
         const hist = dbState.history || ["無", "無", "無"];
         const p0Count = dbState.cards?.p0 ? dbState.cards.p0.length : 0;
@@ -519,7 +493,6 @@
             }
         } else { largeDipaiBox.style.display = 'none'; }
 
-        // 結算與計分板
         const gameOverOverlay = document.getElementById('game-over-overlay');
         if (dbState.gameState === "gameOver" && dbState.winner !== -1) {
             gameOverOverlay.style.display = 'flex';
@@ -536,15 +509,11 @@
             let scores = [0, 0, 0];
             
             if (isWinnerLandlord) {
-                scores[landSeat] = finalAmount * 2;
-                scores[(landSeat+1)%3] = -finalAmount;
-                scores[(landSeat+2)%3] = -finalAmount;
+                scores[landSeat] = finalAmount * 2; scores[(landSeat+1)%3] = -finalAmount; scores[(landSeat+2)%3] = -finalAmount;
                 winDesc.innerText = `地主 (玩家 ${landSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             } else {
-                scores[landSeat] = -(finalAmount * 2);
-                scores[(landSeat+1)%3] = finalAmount;
-                scores[(landSeat+2)%3] = finalAmount;
+                scores[landSeat] = -(finalAmount * 2); scores[(landSeat+1)%3] = finalAmount; scores[(landSeat+2)%3] = finalAmount;
                 winDesc.innerText = `農民 (玩家 ${winSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = !amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             }
@@ -582,62 +551,81 @@
         const myHand = dbState.cards ? (dbState.cards[`p${mySeat}`] || []) : [];
         myHand.sort((a,b) => cardWeights[a.num] - cardWeights[b.num]);
 
-        // 💡 智能一鍵選牌系統
+        // =========================================================
+        // 💡 智能一鍵選牌系統 (支援動態選項切換)
+        // =========================================================
         const smartActionsZone = document.getElementById('smart-actions');
         smartActionsZone.innerHTML = "";
+        
         if (dbState.gameState === "playing" && isMyTurn) {
             const combos = [];
             
             if (deskCards.length === 0) {
-                // 首發出牌：提供各種組合的快捷鍵
+                // 首發：尋找所有可能的長牌與組合
                 for(let len = 12; len >= 5; len--) {
-                    const res = getStraight(myHand, len, 2);
-                    if (res) { combos.push({ name: `✨ 順子`, cards: res }); break; }
+                    const res = getAllStraights(myHand, len, 2);
+                    if (res.length > 0) { combos.push({ name: `✨ 順子`, options: res }); break; }
                 }
                 for(let len = 10; len >= 6; len -= 2) {
-                    const res = getConsecutivePairs(myHand, len, 2);
-                    if (res) { combos.push({ name: `✨ 連對`, cards: res }); break; }
+                    const res = getAllConsecutivePairs(myHand, len, 2);
+                    if (res.length > 0) { combos.push({ name: `✨ 連對`, options: res }); break; }
                 }
+                const res32 = getAllThreeWithPairs(myHand, 2);
+                if (res32.length > 0) combos.push({ name: `✨ 三帶一對`, options: res32 });
                 
-                const res32 = getThreeWithPair(myHand, 2);
-                if (res32) combos.push({ name: `✨ 三帶一對`, cards: res32 });
-                
-                const resBomb = getBomb(myHand, 2);
-                if (resBomb) combos.push({ name: `💥 炸彈`, cards: resBomb });
+                const resBomb = getAllBombs(myHand, 2);
+                if (resBomb.length > 0) combos.push({ name: `💥 炸彈`, options: resBomb });
                 
             } else {
-                // 跟牌：依照桌上牌型精準提供快捷
+                // 跟牌：依照桌上牌型尋找大於對方的所有組合
                 const deskPattern = analyzeCardPattern(deskCards);
                 if (deskPattern.type === "順子") {
-                    const res = getStraight(myHand, deskCards.length, deskPattern.weight);
-                    if (res) combos.push({ name: `💡 跟牌：順子`, cards: res });
+                    const res = getAllStraights(myHand, deskCards.length, deskPattern.weight);
+                    if (res.length > 0) combos.push({ name: `💡 跟牌：順子`, options: res });
                 } else if (deskPattern.type === "連對") {
-                    const res = getConsecutivePairs(myHand, deskCards.length, deskPattern.weight);
-                    if (res) combos.push({ name: `💡 跟牌：連對`, cards: res });
+                    const res = getAllConsecutivePairs(myHand, deskCards.length, deskPattern.weight);
+                    if (res.length > 0) combos.push({ name: `💡 跟牌：連對`, options: res });
                 } else if (deskPattern.type === "三帶一對") {
-                    const res = getThreeWithPair(myHand, deskPattern.weight);
-                    if (res) combos.push({ name: `💡 跟牌：三帶一對`, cards: res });
+                    const res = getAllThreeWithPairs(myHand, deskPattern.weight);
+                    if (res.length > 0) combos.push({ name: `💡 跟牌：三帶一對`, options: res });
                 }
                 
-                // 💣 絕對武力防禦：只要桌上不是王炸，且你手上有炸彈，永遠顯示炸彈反擊按鈕！
                 if (deskPattern.type !== "🚀 火箭 (王炸)") {
                     const minBombWeight = deskPattern.type === "💥 炸彈 💥" ? deskPattern.weight : 2;
-                    const resBomb = getBomb(myHand, minBombWeight);
-                    if (resBomb) combos.push({ name: `💥 炸彈反擊！`, cards: resBomb });
+                    const resBomb = getAllBombs(myHand, minBombWeight);
+                    if (resBomb.length > 0) combos.push({ name: `💥 炸彈反擊！`, options: resBomb });
                 }
             }
 
+            // 渲染按鈕與切換邏輯
             combos.forEach(combo => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-smart';
-                btn.innerText = combo.name;
+                
+                // 確保狀態計數器合法 (如果手牌變動導致選項變少，重置為 0)
+                if (smartComboState[combo.name] === undefined || smartComboState[combo.name] >= combo.options.length) {
+                    smartComboState[combo.name] = 0;
+                }
+                
+                const currentIdx = smartComboState[combo.name];
+                const optCount = combo.options.length;
+                
+                // 如果有多種組合，按鈕上顯示 (1/2), (2/2) 讓玩家知道可以切換
+                btn.innerText = combo.name + (optCount > 1 ? ` (${currentIdx + 1}/${optCount})` : "");
+                
                 btn.onclick = () => {
-                    selectedCards = [];
-                    combo.cards.forEach(cc => {
-                        const idx = myHand.findIndex(hc => hc.suit === cc.suit && hc.num === cc.num);
-                        if (idx > -1 && !selectedCards.includes(idx)) selectedCards.push(idx);
+                    selectedCards = []; // 清空先前選擇
+                    const currentOption = combo.options[currentIdx];
+                    
+                    // 將當前組合的卡片映射回手牌並選取
+                    currentOption.forEach(cc => {
+                        const handIdx = myHand.findIndex(hc => hc.suit === cc.suit && hc.num === cc.num && !selectedCards.includes(handIdx));
+                        if (handIdx > -1) selectedCards.push(handIdx);
                     });
-                    renderGame();
+                    
+                    // 推進計數器，為下一次點擊做準備
+                    smartComboState[combo.name] = (currentIdx + 1) % optCount;
+                    renderGame(); // 重新渲染觸發彈起動畫與按鈕文字更新
                 };
                 smartActionsZone.appendChild(btn);
             });
@@ -669,6 +657,7 @@
 
     function dealCards() {
         isAIThinking = false;
+        smartComboState = {}; // 重新洗牌時清空智能切換記憶
         const currentPlayers = sanitizePlayers(dbState.players);
         const updatedPlayers = currentPlayers.map(p => p === "online" ? "online" : "bot");
 
@@ -684,24 +673,11 @@
         }
         
         update(roomRef, {
-            "players": updatedPlayers,
-            "cards/p0": deck.slice(0, 17),
-            "cards/p1": deck.slice(17, 34),
-            "cards/p2": deck.slice(34, 51),
-            "cards/dipai": deck.slice(51, 54),
-            "cards/desk": [],
-            "history": ["無", "無", "無"],
-            "gameState": "calling",
-            "currentTurn": Math.floor(Math.random() * 3),
-            "callCount": 0, 
-            "landlord": -1,
-            "passCount": 0,
-            "highestBid": 0,
-            "highestBidder": -1,
-            "winner": -1,
-            "lastPattern": "無",
-            "bombCount": 0,
-            "logs": `【系統發牌】請競標叫分。`
+            "players": updatedPlayers, "cards/p0": deck.slice(0, 17), "cards/p1": deck.slice(17, 34),
+            "cards/p2": deck.slice(34, 51), "cards/dipai": deck.slice(51, 54), "cards/desk": [],
+            "history": ["無", "無", "無"], "gameState": "calling", "currentTurn": Math.floor(Math.random() * 3),
+            "callCount": 0, "landlord": -1, "passCount": 0, "highestBid": 0, "highestBidder": -1,
+            "winner": -1, "lastPattern": "無", "bombCount": 0, "logs": `【系統發牌】請競標叫分。`
         });
     }
 
@@ -714,13 +690,10 @@
         updates[`callCount`] = currentCount;
 
         if (score > 0) {
-            updates[`highestBid`] = score;
-            updates[`highestBidder`] = dbState.currentTurn;
-            updates[`history/${dbState.currentTurn}`] = `叫 ${score} 分`;
-            updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 叫了 ${score} 分！`;
+            updates[`highestBid`] = score; updates[`highestBidder`] = dbState.currentTurn;
+            updates[`history/${dbState.currentTurn}`] = `叫 ${score} 分`; updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 叫了 ${score} 分！`;
         } else {
-            updates[`history/${dbState.currentTurn}`] = "不叫";
-            updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 選擇不叫。`;
+            updates[`history/${dbState.currentTurn}`] = "不叫"; updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 選擇不叫。`;
         }
 
         if (score === 3 || currentCount >= 3) {
@@ -736,114 +709,86 @@
                 const landlordIdx = finalBidder;
                 const currentHand = dbState.cards[`p${landlordIdx}`] || [];
                 updates[`cards/p${landlordIdx}`] = [...currentHand, ...(dbState.cards.dipai || [])];
-                updates[`landlord`] = landlordIdx;
-                updates[`gameState`] = "playing";
-                updates[`currentTurn`] = landlordIdx; 
-                updates[`passCount`] = 0;
+                updates[`landlord`] = landlordIdx; updates[`gameState`] = "playing";
+                updates[`currentTurn`] = landlordIdx; updates[`passCount`] = 0;
                 updates[`logs`] = `競標結束！玩家 ${landlordIdx + 1} 以 ${finalScore} 分成為地主！`;
                 update(roomRef, updates);
                 return;
             }
         }
-        updates[`currentTurn`] = nextTurn;
-        updates[`logs`] += ` 輪到 玩家 ${nextTurn + 1} 叫分。`;
+        updates[`currentTurn`] = nextTurn; updates[`logs`] += ` 輪到 玩家 ${nextTurn + 1} 叫分。`;
         update(roomRef, updates);
     };
 
-    // 真人出牌嚴格防呆審查
     document.getElementById('btn-play').onclick = () => {
         if (selectedCards.length === 0) { alert("請先選牌！"); return; }
         const myHandCards = dbState.cards[`p${mySeat}`] || [];
         const playCards = selectedCards.map(idx => myHandCards[idx]);
         
         const currentPattern = analyzeCardPattern(playCards);
-        if (currentPattern.type === "不合法牌型") {
-            alert("⚠️ 選擇的卡牌不符合任何合法的鬥地主牌型，請重新選牌！");
-            return;
-        }
+        if (currentPattern.type === "不合法牌型") { alert("⚠️ 選擇的卡牌不符合任何合法的鬥地主牌型，請重新選牌！"); return; }
 
         const deskCards = dbState.cards?.desk || [];
         if (deskCards.length > 0) {
             const deskPattern = analyzeCardPattern(deskCards);
             let isValidPlay = false;
 
-            if (currentPattern.type === "🚀 火箭 (王炸)") {
-                isValidPlay = true;
-            } else if (currentPattern.type === "💥 炸彈 💥") {
-                if (deskPattern.type !== "💥 炸彈 💥" && deskPattern.type !== "🚀 火箭 (王炸)") {
-                    isValidPlay = true;
-                } else if (deskPattern.type === "💥 炸彈 💥" && currentPattern.weight > deskPattern.weight) {
-                    isValidPlay = true;
-                }
+            if (currentPattern.type === "🚀 火箭 (王炸)") { isValidPlay = true; } 
+            else if (currentPattern.type === "💥 炸彈 💥") {
+                if (deskPattern.type !== "💥 炸彈 💥" && deskPattern.type !== "🚀 火箭 (王炸)") { isValidPlay = true; } 
+                else if (deskPattern.type === "💥 炸彈 💥" && currentPattern.weight > deskPattern.weight) { isValidPlay = true; }
             } else {
-                if (currentPattern.type === deskPattern.type && 
-                    playCards.length === deskCards.length && 
-                    currentPattern.weight > deskPattern.weight) {
-                    isValidPlay = true;
-                }
+                if (currentPattern.type === deskPattern.type && playCards.length === deskCards.length && currentPattern.weight > deskPattern.weight) { isValidPlay = true; }
             }
 
-            if (!isValidPlay) {
-                alert(`⚠️ 你的出牌無法壓制桌上牌型！\n(桌上是 ${deskPattern.type}，你必須出更大的同類牌型或炸彈)`);
-                return; 
-            }
+            if (!isValidPlay) { alert(`⚠️ 你的出牌無法壓制桌上牌型！\n(桌上是 ${deskPattern.type}，你必須出更大的同類牌型或炸彈)`); return; }
         }
 
         const remainingCards = myHandCards.filter((_, idx) => !selectedCards.includes(idx));
         selectedCards = [];
+        smartComboState = {}; // 出牌後重置切換記憶
+        
         const nextTurn = (dbState.currentTurn + 1) % 3;
         const updates = {};
         updates[`cards/p${mySeat}`] = remainingCards;
         updates[`cards/desk`] = playCards;
         
         const cardsText = playCards.map(c => `${c.suit}${c.num}`).join(' ');
-        
         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(currentPattern.type)) {
-            triggerEffectPopup(currentPattern.type);
-            updates[`history/${mySeat}`] = `🔥 ${currentPattern.type}`;
-            updates[`bombCount`] = dbState.bombCount + 1;
-        } else {
-            updates[`history/${mySeat}`] = `[${currentPattern.type}] ${cardsText}`;
-        }
+            triggerEffectPopup(currentPattern.type); updates[`history/${mySeat}`] = `🔥 ${currentPattern.type}`; updates[`bombCount`] = dbState.bombCount + 1;
+        } else { updates[`history/${mySeat}`] = `[${currentPattern.type}] ${cardsText}`; }
         
         updates[`passCount`] = 0; 
-
         if (remainingCards.length === 0) {
-            updates[`gameState`] = "gameOver";
-            updates[`winner`] = mySeat;
-            updates[`logs`] = `🎉 遊戲結束！玩家 ${mySeat + 1} 獲勝！`;
+            updates[`gameState`] = "gameOver"; updates[`winner`] = mySeat; updates[`logs`] = `🎉 遊戲結束！玩家 ${mySeat + 1} 獲勝！`;
         } else {
-            updates[`currentTurn`] = nextTurn;
-            updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}。輪到 玩家 ${nextTurn + 1}`;
+            updates[`currentTurn`] = nextTurn; updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}。輪到 玩家 ${nextTurn + 1}`;
         }
         update(roomRef, updates);
     };
 
     document.getElementById('btn-pass').onclick = () => {
         selectedCards = [];
+        smartComboState = {}; // 不出牌也重置切換記憶
         const nextTurn = (dbState.currentTurn + 1) % 3;
         const currentPassCount = dbState.passCount + 1;
         const updates = {};
         updates[`history/${mySeat}`] = "不出";
 
         if (currentPassCount >= 2) {
-            updates[`cards/desk`] = []; 
-            updates[`passCount`] = 0;   
-            updates[`currentTurn`] = nextTurn; 
+            updates[`cards/desk`] = []; updates[`passCount`] = 0; updates[`currentTurn`] = nextTurn; 
             updates[`logs`] = `大家都不出！回合結束。由 玩家 ${nextTurn + 1} 重新掌控出牌權！`;
         } else {
-            updates[`passCount`] = currentPassCount;
-            updates[`currentTurn`] = nextTurn;
+            updates[`passCount`] = currentPassCount; updates[`currentTurn`] = nextTurn;
             updates[`logs`] = `玩家 ${mySeat + 1} 選擇不出。輪到 玩家 ${nextTurn + 1}`;
         }
         update(roomRef, updates);
     };
 
-    // 🧠 賭神 AI 大腦
+    // 🤖 AI 邏輯稍微適應新引擎
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
-        
         if (dbState.gameState === "gameOver") return;
 
         if (playersList[activeTurn] === "bot" && !isAIThinking) {
@@ -852,23 +797,15 @@
             if (dbState.gameState === "calling") {
                 setTimeout(() => {
                     const aiHand = dbState.cards ? (dbState.cards[`p${activeTurn}`] || []) : [];
-                    let handPower = 0;
-                    const aiCounts = {};
+                    let handPower = 0; const aiCounts = {};
                     aiHand.forEach(c => aiCounts[c.num] = (aiCounts[c.num] || 0) + 1);
-                    
-                    if (aiCounts['大']) handPower += 2;
-                    if (aiCounts['小']) handPower += 1.5;
-                    if (aiCounts['2']) handPower += aiCounts['2'];
+                    if (aiCounts['大']) handPower += 2; if (aiCounts['小']) handPower += 1.5; if (aiCounts['2']) handPower += aiCounts['2'];
                     Object.values(aiCounts).forEach(count => { if (count === 4) handPower += 3; });
 
                     let targetScore = 0;
-                    if (handPower >= 5) targetScore = 3;      
-                    else if (handPower >= 3) targetScore = 2; 
-                    else if (handPower >= 1.5) targetScore = 1;
-
+                    if (handPower >= 5) targetScore = 3; else if (handPower >= 3) targetScore = 2; else if (handPower >= 1.5) targetScore = 1;
                     if (targetScore <= dbState.highestBid) targetScore = 0; 
-                    submitCall(targetScore);
-                    isAIThinking = false; 
+                    submitCall(targetScore); isAIThinking = false; 
                 }, 1200);
                 return;
             }
@@ -876,123 +813,65 @@
             if (dbState.gameState === "playing") {
                 setTimeout(() => {
                     if (dbState.gameState === "gameOver") { isAIThinking = false; return; }
-
                     const aiHand = dbState.cards ? (dbState.cards[`p${activeTurn}`] || []) : [];
                     const deskCards = dbState.cards?.desk || [];
-                    const nextTurn = (activeTurn + 1) % 3;
-                    const currentPassCount = dbState.passCount + 1;
-
+                    const nextTurn = (activeTurn + 1) % 3; const currentPassCount = dbState.passCount + 1;
                     if (aiHand.length === 0) { isAIThinking = false; return; }
                     
                     aiHand.sort((a,b) => cardWeights[a.num] - cardWeights[b.num]);
-                    const updates = {};
-                    let cardsLeftCount = aiHand.length;
-                    const counts = {};
+                    const updates = {}; let cardsLeftCount = aiHand.length; const counts = {};
                     aiHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
 
                     let cardsToPlay = null;
 
                     if (deskCards.length === 0) {
-                        for(let len = 10; len >= 6; len -= 2) {
-                            cardsToPlay = getConsecutivePairs(aiHand, len, 2);
-                            if(cardsToPlay) break;
-                        }
-                        if (!cardsToPlay) {
-                            for(let len = 12; len >= 5; len--) {
-                                cardsToPlay = getStraight(aiHand, len, 2);
-                                if(cardsToPlay) break;
-                            }
-                        }
-                        if (!cardsToPlay) {
-                            const lowestCardNum = aiHand[0].num;
-                            const playCount = counts[lowestCardNum];
-                            cardsToPlay = aiHand.filter(c => c.num === lowestCardNum).slice(0, playCount);
-                        }
+                        for(let len = 10; len >= 6; len -= 2) { const res = getAllConsecutivePairs(aiHand, len, 2); if(res.length > 0) { cardsToPlay = res[0]; break; } }
+                        if (!cardsToPlay) { for(let len = 12; len >= 5; len--) { const res = getAllStraights(aiHand, len, 2); if(res.length > 0) { cardsToPlay = res[0]; break; } } }
+                        if (!cardsToPlay) { const lowestCardNum = aiHand[0].num; const playCount = counts[lowestCardNum]; cardsToPlay = aiHand.filter(c => c.num === lowestCardNum).slice(0, playCount); }
                     } 
                     else {
                         const deskPattern = analyzeCardPattern(deskCards);
-                        if (deskPattern.type === "順子") {
-                            cardsToPlay = getStraight(aiHand, deskCards.length, deskPattern.weight);
-                        }
-                        else if (deskPattern.type === "連對") {
-                            cardsToPlay = getConsecutivePairs(aiHand, deskCards.length, deskPattern.weight);
-                        }
-                        else if (deskPattern.type === "單張") {
-                            const playCardIdx = aiHand.findIndex(card => cardWeights[card.num] > deskPattern.weight);
-                            if (playCardIdx > -1) cardsToPlay = [aiHand[playCardIdx]];
-                        }
-                        else if (deskPattern.type === "對子") {
-                            const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight);
-                            if (pairKey) cardsToPlay = aiHand.filter(c => c.num === pairKey).slice(0, 2);
-                        }
-                        else if (deskPattern.type === "三條") {
-                            const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight);
-                            if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3);
-                        }
-                        else if (deskPattern.type === "💥 炸彈 💥") {
-                            const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight);
-                            if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4);
-                        }
+                        if (deskPattern.type === "順子") { const res = getAllStraights(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
+                        else if (deskPattern.type === "連對") { const res = getAllConsecutivePairs(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
+                        else if (deskPattern.type === "單張") { const playCardIdx = aiHand.findIndex(card => cardWeights[card.num] > deskPattern.weight); if (playCardIdx > -1) cardsToPlay = [aiHand[playCardIdx]]; }
+                        else if (deskPattern.type === "對子") { const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight); if (pairKey) cardsToPlay = aiHand.filter(c => c.num === pairKey).slice(0, 2); }
+                        else if (deskPattern.type === "三條") { const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight); if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3); }
+                        else if (deskPattern.type === "💥 炸彈 💥") { const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight); if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); }
 
                         if (!cardsToPlay && deskPattern.type !== "🚀 火箭 (王炸)") {
                             const bombKey = Object.keys(counts).find(k => counts[k] === 4);
-                            if (bombKey && deskPattern.type !== "💥 炸彈 💥") {
-                                cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4);
-                            } else if (counts['大'] && counts['小']) {
-                                cardsToPlay = aiHand.filter(c => c.num === '大' || c.num === '小');
-                            }
+                            if (bombKey && deskPattern.type !== "💥 炸彈 💥") { cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); } 
+                            else if (counts['大'] && counts['小']) { cardsToPlay = aiHand.filter(c => c.num === '大' || c.num === '小'); }
                         }
                     }
 
                     if (cardsToPlay) {
                         const playPattern = analyzeCardPattern(cardsToPlay);
                         const remaining = [...aiHand];
-                        cardsToPlay.forEach(pc => {
-                            const idx = remaining.findIndex(c => c.suit === pc.suit && c.num === pc.num);
-                            if(idx > -1) remaining.splice(idx, 1);
-                        });
+                        cardsToPlay.forEach(pc => { const idx = remaining.findIndex(c => c.suit === pc.suit && c.num === pc.num); if(idx > -1) remaining.splice(idx, 1); });
 
-                        cardsLeftCount = remaining.length;
-                        updates[`cards/p${activeTurn}`] = remaining;
-                        updates[`cards/desk`] = cardsToPlay;
-                        
-                        if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) {
-                            updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`;
-                            updates[`bombCount`] = dbState.bombCount + 1; 
-                        } else {
-                            updates[`history/${activeTurn}`] = `${playPattern.type}: ` + cardsToPlay.map(c=>c.suit+c.num).join(' ');
-                        }
+                        cardsLeftCount = remaining.length; updates[`cards/p${activeTurn}`] = remaining; updates[`cards/desk`] = cardsToPlay;
+                        if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) { updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`; updates[`bombCount`] = dbState.bombCount + 1; } 
+                        else { updates[`history/${activeTurn}`] = `${playPattern.type}: ` + cardsToPlay.map(c=>c.suit+c.num).join(' '); }
                         updates[`passCount`] = 0;
                     } else {
                         updates[`history/${activeTurn}`] = "不出";
-                        if (currentPassCount >= 2) {
-                            updates[`cards/desk`] = []; updates[`passCount`] = 0;
-                        } else {
-                            updates[`passCount`] = currentPassCount;
-                        }
+                        if (currentPassCount >= 2) { updates[`cards/desk`] = []; updates[`passCount`] = 0; } 
+                        else { updates[`passCount`] = currentPassCount; }
                     }
 
                     if (cardsLeftCount === 0 && updates[`cards/p${activeTurn}`]) {
-                        updates[`gameState`] = "gameOver";
-                        updates[`winner`] = activeTurn;
-                        updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
+                        updates[`gameState`] = "gameOver"; updates[`winner`] = activeTurn; updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
                     } else {
                         if (updates[`passCount`] === 0 && !updates[`cards/p${activeTurn}`] && currentPassCount >= 2) {
-                            updates[`currentTurn`] = nextTurn;
-                            updates[`logs`] = `大家都不出！回合結束。由 玩家 ${nextTurn + 1} 重新掌控出牌權！`;
+                            updates[`currentTurn`] = nextTurn; updates[`logs`] = `大家都不出！回合結束。由 玩家 ${nextTurn + 1} 重新掌控出牌權！`;
                         } else {
                             updates[`currentTurn`] = nextTurn;
-                            if (updates[`cards/p${activeTurn}`]) {
-                                const played = updates[`history/${activeTurn}`];
-                                updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 打出 ${played}。`;
-                            } else {
-                                updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 壓不住選擇不出。`;
-                            }
+                            if (updates[`cards/p${activeTurn}`]) { updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 打出 ${updates[`history/${activeTurn}`]}。`; } 
+                            else { updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 壓不住選擇不出。`; }
                         }
                     }
-
-                    update(roomRef, updates).then(() => { isAIThinking = false; })
-                                           .catch(() => { isAIThinking = false; });
+                    update(roomRef, updates).then(() => { isAIThinking = false; }).catch(() => { isAIThinking = false; });
                 }, 1200);
             }
         }
