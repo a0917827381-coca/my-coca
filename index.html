@@ -614,18 +614,17 @@
                 btn.innerText = combo.name + (optCount > 1 ? ` (${currentIdx + 1}/${optCount})` : "");
                 
                 btn.onclick = () => {
-                    selectedCards = []; // 清空先前選擇
+                    selectedCards = []; 
                     const currentOption = combo.options[currentIdx];
                     
-                    // 將當前組合的卡片映射回手牌並選取
                     currentOption.forEach(cc => {
-                        const handIdx = myHand.findIndex(hc => hc.suit === cc.suit && hc.num === cc.num && !selectedCards.includes(handIdx));
+                        // 【修正】：加入 (hc, idx) 才能讓 includes 抓到正確的 index
+                        const handIdx = myHand.findIndex((hc, idx) => hc.suit === cc.suit && hc.num === cc.num && !selectedCards.includes(idx));
                         if (handIdx > -1) selectedCards.push(handIdx);
                     });
                     
-                    // 推進計數器，為下一次點擊做準備
                     smartComboState[combo.name] = (currentIdx + 1) % optCount;
-                    renderGame(); // 重新渲染觸發彈起動畫與按鈕文字更新
+                    renderGame(); 
                 };
                 smartActionsZone.appendChild(btn);
             });
@@ -785,16 +784,22 @@
         update(roomRef, updates);
     };
 
-    // 🤖 AI 邏輯稍微適應新引擎
+    // 🤖 AI 邏輯適應連線引擎 (防腦裂修正)
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
         if (dbState.gameState === "gameOver") return;
 
-        if (playersList[activeTurn] === "bot" && !isAIThinking) {
+        // 【修正】：找出在線玩家中，座位號碼最小的當作「主機 (Host)」
+        const onlinePlayers = playersList.map((p, index) => p === "online" ? index : -1).filter(i => i !== -1);
+        const isHost = onlinePlayers.length > 0 && onlinePlayers[0] === mySeat;
+
+        // 只有輪到電腦，且「我」是主機時，才允許執行 AI 運算
+        if (playersList[activeTurn] === "bot" && isHost && !isAIThinking) {
             isAIThinking = true; 
 
             if (dbState.gameState === "calling") {
+
                 setTimeout(() => {
                     const aiHand = dbState.cards ? (dbState.cards[`p${activeTurn}`] || []) : [];
                     let handPower = 0; const aiCounts = {};
