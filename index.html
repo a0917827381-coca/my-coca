@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>連線鬥地主-無BUG實戰版</title>
     <style>
+        /* 自己座位的反黃強調 */
+        .history-item.is-me {
+            background: rgba(255, 235, 59, 0.25); /* 帶點透明度的黃，字才看得清 */
+            border: 1px solid #ffeb3b;
+        }
+
+        /* 當前出牌者的放大效果 */
+        .history-item.is-active {
+            transform: scale(1.5); /* 依照你的要求放大 1.5 倍 */
+            transform-origin: center center; /* 從中心點放大 */
+            z-index: 10;
+            background: rgba(76, 175, 80, 0.6); /* 給一點綠色底光，區分現在是出牌階段 */
+            border: 1px solid #81c784;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); /* 順滑的 Q 彈動畫 */
+        }
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #143520; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         
         #seat-selection { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,25,15,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; box-sizing: border-box; }
@@ -420,7 +436,21 @@
             const isPlaying = (dbState.gameState === "playing" || dbState.gameState === "gameOver") && count > 0;
             const alertStyle = count <= 2 ? "color: #ff5252; font-weight: 900; text-shadow: 0 0 5px rgba(255,82,82,0.8);" : "color: #81c784;";
             const countDisplay = isPlaying ? `<span style="${alertStyle} font-size: 11px; margin-left: 2px;">(剩${count}張)</span>` : "";
-            historyHTML += `<div class="history-item">P${i+1}${countDisplay}: ${hist[i]}</div>`;
+            
+            // --- 新增的 UI 判斷邏輯 ---
+            const isMe = (i === mySeat);
+            const isLandlord = (i === dbState.landlord);
+            const isActive = (i === dbState.currentTurn && (dbState.gameState === "calling" || dbState.gameState === "playing"));
+            
+            // 動態疊加 Class
+            let classNames = "history-item";
+            if (isMe) classNames += " is-me";
+            if (isActive) classNames += " is-active";
+            
+            // 皇冠標記
+            const roleIcon = isLandlord ? "👑" : "";
+            
+            historyHTML += `<div class="${classNames}">${roleIcon}P${i+1}${countDisplay}: ${hist[i]}</div>`;
         }
         historyBox.innerHTML = historyHTML;
 
