@@ -355,11 +355,26 @@
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
 
-    window.join = function(seatIdx) {
+    window.join = async function(seatIdx) {
         const currentPlayers = dbState?.players || [null, null, null];
         if (currentPlayers[seatIdx] === "online") { alert("此座位已被真人選擇！"); return; }
-        mySeat = seatIdx; sessionStorage.setItem('mySeat', mySeat); 
+        
+        // 試圖進入全螢幕並鎖定橫向 (需由使用者點擊觸發)
+        try {
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock("landscape");
+                }
+            }
+        } catch (err) {
+            console.log("瀏覽器不支援強制橫向或全螢幕，將依賴 CSS 提示", err);
+        }
+
+        mySeat = seatIdx; 
+        sessionStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
+        
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
         onDisconnect(myPlayerRef).set("bot").then(() => {
             const updates = {}; updates[`players/${seatIdx}`] = "online";
