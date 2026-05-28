@@ -90,7 +90,16 @@
         .card.red { color: #e53935; }
         .card.selected { transform: translateY(-24px) scale(1.05); background: #e3f2fd; border-color: #2196f3; box-shadow: 0 10px 20px rgba(33,150,243,0.4); }
         
-        .smart-actions { display: flex; justify-content: center; gap: 8px; margin-bottom: -10px; min-height: 35px; z-index: 10; position: relative; }
+        .smart-actions { 
+            display: flex; 
+            justify-content: center; 
+            gap: 8px; 
+            margin-bottom: 12px; /* 修改：將 -10px 改為正數 12px，拉開與卡牌數字的距離 */
+            min-height: 35px; 
+            z-index: 10; 
+            position: relative; 
+            flex-wrap: wrap;     /* 新增：如果提示牌型太多，允許按鈕自動換行 */
+        }
         .btn-smart { background: #9c27b0; color: white; border: 2px solid #e1bee7; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); animation: pulse 1.5s infinite alternate; }
         .btn-smart:active { transform: scale(0.95); }
         @keyframes pulse { from { box-shadow: 0 4px 10px rgba(156,39,176,0.4); } to { box-shadow: 0 4px 20px rgba(156,39,176,0.8); } }
