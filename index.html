@@ -45,7 +45,18 @@
         .history-item { color: #ffb74d; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 33%; }
         
         .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; width: 100%; }
-        .large-dipai-area { display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 8px 16px; border-radius: 8px; }
+        .large-dipai-area { 
+            position: absolute; /* 絕對定位，脫離排版流 */
+            top: 10%;           /* 懸浮在桌面偏上方 */
+            left: 50%;
+            transform: translateX(-50%); /* 確保絕對置中 */
+            display: flex; 
+            gap: 8px; 
+            background: rgba(0,0,0,0.3); 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            z-index: 50;        /* 確保不會被其他元素蓋住 */
+        }
         .large-dipai-card { width: 45px; height: 65px; background: #fff; color: #000; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
         
         #pattern-effect-popup { position: absolute; top: 20%; background: rgba(255,235,59,0.95); color: #000; padding: 6px 20px; border-radius: 20px; font-size: 20px; font-weight: 900; box-shadow: 0 4px 15px rgba(255,235,59,0.5); display: none; z-index: 999; animation: pop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
