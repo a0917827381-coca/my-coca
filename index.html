@@ -55,6 +55,12 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.8); 
             color: #fff; 
         }
+        /* 新增：遇到「自己」且「輪到自己出牌」時，強制顯示高亮紅色 */
+        .history-item.is-me.is-active {
+            background: rgba(244, 67, 54, 0.9); /* 不透明的亮紅色 */
+            border-color: #ff1744;
+            box-shadow: 0 8px 20px rgba(244, 67, 54, 0.8);
+        }
         .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; width: 100%; }
         
         /* 修改大底牌為絕對定位，避免擠壓手牌空間 */
