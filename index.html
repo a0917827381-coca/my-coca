@@ -152,6 +152,7 @@
 
     <div class="header">
         <div class="header-top">
+            <button id="btn-force-reset" style="background: #d32f2f; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; margin-right: 8px;">🔄 重置牌局</button>
             <div id="log">正在連線至雲端...</div>
             <div class="status-badges">
                 <div class="badge" id="multiplier-badge">1 倍</div>
@@ -428,6 +429,17 @@
         };
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
+    document.getElementById('btn-force-reset').onclick = () => {
+        if(confirm("確定要中斷這局，清空所有人的手牌重新開始嗎？")) {
+            const updates = {
+                "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
+                "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
+                "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
+                "lastPattern": "無", "bombCount": 0, "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌！請重新發牌。`
+            };
+            update(roomRef, updates); 
+        }
+    };    
 
     window.join = async function(seatIdx) {
         const currentPlayers = dbState?.players || [null, null, null];
