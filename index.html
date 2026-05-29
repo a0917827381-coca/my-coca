@@ -103,7 +103,22 @@
         .btn-smart:active { transform: scale(0.95); }
         @keyframes pulse { from { box-shadow: 0 4px 10px rgba(156,39,176,0.4); } to { box-shadow: 0 4px 20px rgba(156,39,176,0.8); } }
 
-        .hand-container { display: flex; justify-content: center; align-items: flex-end; width: 100%; height: 110px; padding: 0 15px; box-sizing: border-box; margin-bottom: 5px; }
+        /* 終極防切版：改用 fixed 強制貼齊螢幕底部 */
+        .hand-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-end; 
+            width: 100%; 
+            height: 110px; 
+            padding: 0 15px; 
+            box-sizing: border-box; 
+            
+            /* ▼▼▼ 救命的關鍵在這裡 ▼▼▼ */
+            position: fixed; /* 脫離排版，絕對固定在視窗上 */
+            bottom: 5px;     /* 距離螢幕最底部 5 像素 */
+            left: 0;
+            z-index: 100;    /* 確保手牌永遠在最上層，不會被蓋住 */
+        }
         .hand-container .card { margin-left: -42px; } 
         .hand-container .card:first-child { margin-left: 0; }
         
