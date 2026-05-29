@@ -3,8 +3,8 @@
   "short_name": "鬥地主",
   "display": "fullscreen",
   "orientation": "landscape",
-  "start_url": "/my-coca/index.html",
-  "scope": "/my-coca/",
+  "start_url": "./",
+  "scope": "./",
   "background_color": "#143520",
   "theme_color": "#143520",
   "icons": [

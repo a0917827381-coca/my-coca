@@ -1,8 +1,12 @@
-// 滿足 Chrome PWA 安裝的硬性指標，讓 App 具備啟動權限
 self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-    // 保持空載即可，讓連線直接通過
+self.addEventListener('activate', (e) => {
+    e.waitUntil(clients.claim());
+});
+
+// 攔截請求並直接放行至網路，確保 WebAPK 啟動時不會抓不到資料而閃退
+self.addEventListener('fetch', (event) => {
+    event.respondWith(fetch(event.request));
 });
