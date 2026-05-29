@@ -1,7 +1,6 @@
 {
-  "id": "/my-coca/v2",
   "name": "連線鬥地主",
-  "short_name": "鬥地主V2",
+  "short_name": "鬥地主",
   "display": "fullscreen",
   "orientation": "landscape",
   "start_url": "/my-coca/index.html",
@@ -11,9 +10,13 @@
   "icons": [
     {
       "src": "icon.png",
-      "sizes": "192x192 512x512 any",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
