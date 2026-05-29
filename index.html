@@ -199,7 +199,7 @@
         'J':11, 'Q':12, 'K':13, 'A':14, '2':15, '小':16, '大':17
     };
 
-    let savedSeat = sessionStorage.getItem('mySeat');
+    let savedSeat = localStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
     let smartComboState = {}; 
     let offlineTimers = {}; // 15秒倒數計時器
@@ -397,7 +397,7 @@
     document.getElementById('btn-clear-room').onclick = () => {
         if(confirm("確定重設房間數據？")) {
             if (mySeat !== -1) onDisconnect(ref(db, `room/table1/players/${mySeat}`)).cancel();
-            sessionStorage.removeItem('mySeat');
+            localStorage.removeItem('mySeat');
             set(roomRef, initialGameState).then(() => location.reload());
         }
     };
@@ -423,7 +423,7 @@
             }
         } catch (err) { console.log("瀏覽器不支援強制橫向，依賴 CSS 提示"); }
 
-        mySeat = seatIdx; sessionStorage.setItem('mySeat', mySeat); 
+        mySeat = seatIdx; localStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
         
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
@@ -457,7 +457,7 @@
                 const status = playersList[i];
                 if (status === "online") { btn.disabled = (mySeat === i); btn.innerText = `玩家 ${i+1} (真人連線)`; }
                 else if (status === "bot") { btn.disabled = false; btn.innerText = `玩家 ${i+1} (電腦 - 點擊接管)`; }
-                else if (status === "offline") { btn.disabled = true; btn.innerText = `玩家 ${i+1} (暫時離線)`; }
+                else if (status === "offline") { btn.disabled = false; btn.innerText = `玩家 ${i+1} (離線 - 點擊接管)`; }
                 else { btn.disabled = false; btn.innerText = `玩家 ${i+1} (點擊入座)`; }
             }
         }
