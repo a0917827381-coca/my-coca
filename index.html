@@ -41,9 +41,20 @@
         .history-item { color: #ffb74d; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 33%; padding: 4px 8px; border-radius: 4px; transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); border: 1px solid transparent; }
         
         /* 玩家狀態強調樣式 */
-        .history-item.is-me { background: rgba(255, 235, 59, 0.25); border-color: #ffeb3b; }
-        .history-item.is-active { transform: scale(1.5); transform-origin: center top; z-index: 10; background: rgba(76, 175, 80, 0.6); border-color: #81c784; box-shadow: 0 4px 10px rgba(0,0,0,0.6); color: #fff; }
-        
+        .history-item.is-me { 
+            background: rgba(244, 67, 54, 0.3); /* 半透明的紅色底 */
+            border-color: #f44336;              /* 紅色邊框 */
+            color: #ffcdd2;                     /* 讓文字在紅色背景下更顯眼 */
+        }
+        .history-item.is-active { 
+            transform: scale(3);               /* 從原本的 1.5 倍改為 3 倍 */
+            transform-origin: center top; 
+            z-index: 1000;                     /* 提高層級，確保放大後不會被下面的卡牌蓋住 */
+            background: rgba(76, 175, 80, 0.9);/* 稍微加深底色，增加對比度 */
+            border-color: #81c784; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8); 
+            color: #fff; 
+        }
         .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; width: 100%; }
         
         /* 修改大底牌為絕對定位，避免擠壓手牌空間 */
