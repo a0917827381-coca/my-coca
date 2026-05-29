@@ -251,6 +251,12 @@
 </div>
 
 <script type="module">
+    // 在 <script type="module"> 的第一行補上這段：
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+    }
+
+    // 下面是你原本的 Firebase 連線和遊戲邏輯...
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getDatabase, ref, onValue, set, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
