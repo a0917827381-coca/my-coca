@@ -1,0 +1,9 @@
+{
+  "name": "連線鬥地主",
+  "short_name": "鬥地主",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "start_url": "./index.html",
+  "background_color": "#143520",
+  "theme_color": "#143520"
+}
