@@ -594,6 +594,12 @@
                     const res = getAllConsecutivePairs(myHand, len, 2);
                     if (res.length > 0) { combos.push({ name: `✨ 連對`, options: res }); break; }
                 }
+                
+                // 新增：自由出牌時的「三條」快捷鍵
+                const counts = {}; myHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+                const threeKeys = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => cardWeights[a] - cardWeights[b]);
+                if (threeKeys.length > 0) combos.push({ name: `✨ 三條`, options: threeKeys.map(k => myHand.filter(c => c.num === k).slice(0, 3)) });
+
                 const res32 = getAllThreeWithPairs(myHand, 2);
                 if (res32.length > 0) combos.push({ name: `✨ 三帶一對`, options: res32 });
                 
@@ -602,6 +608,8 @@
                 
             } else {
                 const deskPattern = analyzeCardPattern(deskCards);
+                const counts = {}; myHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
+
                 if (deskPattern.type === "順子") {
                     const res = getAllStraights(myHand, deskCards.length, deskPattern.weight);
                     if (res.length > 0) combos.push({ name: `💡 跟牌：順子`, options: res });
@@ -611,6 +619,17 @@
                 } else if (deskPattern.type === "三帶一對") {
                     const res = getAllThreeWithPairs(myHand, deskPattern.weight);
                     if (res.length > 0) combos.push({ name: `💡 跟牌：三帶一對`, options: res });
+                } 
+                // 新增：跟牌時的 單張、對子、三條 快捷鍵
+                else if (deskPattern.type === "單張") {
+                    const res = myHand.filter(c => cardWeights[c.num] > deskPattern.weight).map(c => [c]);
+                    if (res.length > 0) combos.push({ name: `💡 跟牌：單張`, options: res });
+                } else if (deskPattern.type === "對子") {
+                    const pairKeys = Object.keys(counts).filter(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight).sort((a,b) => cardWeights[a] - cardWeights[b]);
+                    if (pairKeys.length > 0) combos.push({ name: `💡 跟牌：對子`, options: pairKeys.map(k => myHand.filter(c => c.num === k).slice(0, 2)) });
+                } else if (deskPattern.type === "三條") {
+                    const threeKeys = Object.keys(counts).filter(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight).sort((a,b) => cardWeights[a] - cardWeights[b]);
+                    if (threeKeys.length > 0) combos.push({ name: `💡 跟牌：三條`, options: threeKeys.map(k => myHand.filter(c => c.num === k).slice(0, 3)) });
                 }
                 
                 if (deskPattern.type !== "🚀 火箭 (王炸)") {
@@ -838,17 +857,39 @@
                     } 
                     else {
                         const deskPattern = analyzeCardPattern(deskCards);
-                        if (deskPattern.type === "順子") { const res = getAllStraights(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
-                        else if (deskPattern.type === "連對") { const res = getAllConsecutivePairs(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
-                        else if (deskPattern.type === "單張") { const playCardIdx = aiHand.findIndex(card => cardWeights[card.num] > deskPattern.weight); if (playCardIdx > -1) cardsToPlay = [aiHand[playCardIdx]]; }
-                        else if (deskPattern.type === "對子") { const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight); if (pairKey) cardsToPlay = aiHand.filter(c => c.num === pairKey).slice(0, 2); }
-                        else if (deskPattern.type === "三條") { const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight); if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3); }
-                        else if (deskPattern.type === "💥 炸彈 💥") { const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight); if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); }
+                        
+                        // --- 【新增大腦區塊 1：陣營判斷與隊友保護】 ---
+                        const isLandlord = (activeTurn === dbState.landlord);
+                        // passCount 為 1 代表上一家出的牌，passCount 為 0 代表上上家出的牌
+                        const lastPlayerIdx = dbState.passCount === 1 ? (activeTurn + 2) % 3 : (activeTurn + 1) % 3;
+                        const isTeammate = !isLandlord && (lastPlayerIdx !== dbState.landlord); // 如果我都不是地主，且出牌的也不是地主，他就是我隊友
 
-                        if (!cardsToPlay && deskPattern.type !== "🚀 火箭 (王炸)") {
-                            const bombKey = Object.keys(counts).find(k => counts[k] === 4);
-                            if (bombKey && deskPattern.type !== "💥 炸彈 💥") { cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); } 
-                            else if (counts['大'] && counts['小']) { cardsToPlay = aiHand.filter(c => c.num === '大' || c.num === '小'); }
+                        // 如果桌上的牌是隊友出的，而且已經是大牌 (權重 > 11，大約是 J 以上)，且我手上還有一堆牌 (> 2張)，就選擇放水「不出」
+                        let shouldPassForTeammate = false;
+                        if (isTeammate && deskPattern.weight > 11 && aiHand.length > 2) {
+                            shouldPassForTeammate = true;
+                        }
+
+                        if (!shouldPassForTeammate) {
+                            if (deskPattern.type === "順子") { const res = getAllStraights(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
+                            else if (deskPattern.type === "連對") { const res = getAllConsecutivePairs(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
+                            else if (deskPattern.type === "單張") { const playCardIdx = aiHand.findIndex(card => cardWeights[card.num] > deskPattern.weight); if (playCardIdx > -1) cardsToPlay = [aiHand[playCardIdx]]; }
+                            else if (deskPattern.type === "對子") { const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight); if (pairKey) cardsToPlay = aiHand.filter(c => c.num === pairKey).slice(0, 2); }
+                            else if (deskPattern.type === "三條") { const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight); if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3); }
+                            else if (deskPattern.type === "💥 炸彈 💥") { const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight); if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); }
+
+                            // --- 【新增大腦區塊 2：炸彈節流閥】 ---
+                            if (!cardsToPlay && deskPattern.type !== "🚀 火箭 (王炸)") {
+                                // 只有當桌面的牌具有威脅性 (大於 J)，或者自己已經被逼到絕境 (剩 5 張以內)，才願意動用炸彈
+                                const isDesperate = aiHand.length <= 5;
+                                const isDeskThreatening = deskPattern.weight > 10;
+                                
+                                if (isDesperate || isDeskThreatening) {
+                                    const bombKey = Object.keys(counts).find(k => counts[k] === 4);
+                                    if (bombKey && deskPattern.type !== "💥 炸彈 💥") { cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); } 
+                                    else if (counts['大'] && counts['小']) { cardsToPlay = aiHand.filter(c => c.num === '大' || c.num === '小'); }
+                                }
+                            }
                         }
                     }
 
