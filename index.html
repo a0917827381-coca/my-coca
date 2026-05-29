@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>連線鬥地主-無BUG實戰版</title>
+    <title>連線鬥地主-無BUG實戰版 (完美橫向版)</title>
     <style>
-        /* 自己座位的反黃強調 */
-        .history-item.is-me {
-            background: rgba(255, 235, 59, 0.25); /* 帶點透明度的黃，字才看得清 */
-            border: 1px solid #ffeb3b;
-        }
-
-        /* 當前出牌者的放大效果 */
-        .history-item.is-active {
-            transform: scale(1.5); /* 依照你的要求放大 1.5 倍 */
-            transform-origin: center center; /* 從中心點放大 */
-            z-index: 10;
-            background: rgba(76, 175, 80, 0.6); /* 給一點綠色底光，區分現在是出牌階段 */
-            border: 1px solid #81c784;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
-            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); /* 順滑的 Q 彈動畫 */
-        }
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #143520; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; touch-action: none; user-select: none; }
         
+        /* 橫向提示遮罩 */
+        #orientation-warning {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #143520; color: #ffeb3b; z-index: 100000;
+            flex-direction: column; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: bold; text-align: center;
+        }
+        @media screen and (orientation: portrait) {
+            #orientation-warning { display: flex; }
+            .app-container, #seat-selection, #game-over-overlay { display: none !important; }
+        }
+
         #seat-selection { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,25,15,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; box-sizing: border-box; }
         .seat-btn { background: #1976d2; color: white; padding: 16px 30px; border-radius: 30px; margin: 12px; width: 85%; max-width: 350px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .seat-btn:disabled { background: #444; opacity: 0.5; }
@@ -41,43 +37,26 @@
         .mini-dipai-card { width: 24px; height: 35px; background: #fff; color: #000; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .mini-dipai-card.red { color: #e53935; }
 
-        .history-panel { display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 6px; font-size: 12px; gap: 5px; }
-        .history-item { color: #ffb74d; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 33%; }
+        .history-panel { display: flex; justify-content: space-around; background: rgba(255,255,255,0.08); padding: 6px; border-radius: 6px; font-size: 12px; gap: 5px; align-items: center; }
+        .history-item { color: #ffb74d; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 33%; padding: 4px 8px; border-radius: 4px; transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); border: 1px solid transparent; }
+        
+        /* 玩家狀態強調樣式 */
+        .history-item.is-me { background: rgba(255, 235, 59, 0.25); border-color: #ffeb3b; }
+        .history-item.is-active { transform: scale(1.5); transform-origin: center top; z-index: 10; background: rgba(76, 175, 80, 0.6); border-color: #81c784; box-shadow: 0 4px 10px rgba(0,0,0,0.6); color: #fff; }
         
         .table-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; width: 100%; }
-        .large-dipai-area { 
-            position: absolute; /* 絕對定位，脫離排版流 */
-            top: 10%;           /* 懸浮在桌面偏上方 */
-            left: 50%;
-            transform: translateX(-50%); /* 確保絕對置中 */
-            display: flex; 
-            gap: 8px; 
-            background: rgba(0,0,0,0.3); 
-            padding: 8px 16px; 
-            border-radius: 8px; 
-            z-index: 50;        /* 確保不會被其他元素蓋住 */
-        }
+        
+        /* 修改大底牌為絕對定位，避免擠壓手牌空間 */
+        .large-dipai-area { display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 8px 16px; border-radius: 8px; position: absolute; top: 10%; left: 50%; transform: translateX(-50%); z-index: 50; }
         .large-dipai-card { width: 45px; height: 65px; background: #fff; color: #000; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.4); }
         
         #pattern-effect-popup { position: absolute; top: 20%; background: rgba(255,235,59,0.95); color: #000; padding: 6px 20px; border-radius: 20px; font-size: 20px; font-weight: 900; box-shadow: 0 4px 15px rgba(255,235,59,0.5); display: none; z-index: 999; animation: pop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* 修改：移除 gap 與 flex-wrap，強制不換行 */
-        .play-container { 
-            display: flex; 
-            min-height: 110px; 
-            align-items: center; 
-            justify-content: center; 
-            width: 100%; 
-        }
-
-        /* 新增：讓打出的牌互相交疊，大幅節省橫向空間 */
-        .play-container .card {
-            margin-left: -45px; 
-        }
-        .play-container .card:first-child {
-            margin-left: 0;
-        }
+        /* 修改桌面卡牌不換行，並交疊顯示 */
+        .play-container { display: flex; min-height: 110px; align-items: center; justify-content: center; width: 100%; }
+        .play-container .card { margin-left: -45px; }
+        .play-container .card:first-child { margin-left: 0; }
         
         .card { 
             width: 68px; height: 105px; background: #ffffff; color: #111111; border-radius: 8px; 
@@ -90,16 +69,8 @@
         .card.red { color: #e53935; }
         .card.selected { transform: translateY(-24px) scale(1.05); background: #e3f2fd; border-color: #2196f3; box-shadow: 0 10px 20px rgba(33,150,243,0.4); }
         
-        .smart-actions { 
-            display: flex; 
-            justify-content: center; 
-            gap: 8px; 
-            margin-bottom: 12px; /* 修改：將 -10px 改為正數 12px，拉開與卡牌數字的距離 */
-            min-height: 35px; 
-            z-index: 10; 
-            position: relative; 
-            flex-wrap: wrap;     /* 新增：如果提示牌型太多，允許按鈕自動換行 */
-        }
+        /* 修改快捷鍵邊距與自動換行 */
+        .smart-actions { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; min-height: 35px; z-index: 10; position: relative; flex-wrap: wrap; }
         .btn-smart { background: #9c27b0; color: white; border: 2px solid #e1bee7; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); animation: pulse 1.5s infinite alternate; }
         .btn-smart:active { transform: scale(0.95); }
         @keyframes pulse { from { box-shadow: 0 4px 10px rgba(156,39,176,0.4); } to { box-shadow: 0 4px 20px rgba(156,39,176,0.8); } }
@@ -114,6 +85,8 @@
         .btn-xl.danger-btn { background: #f44336; }
         .btn-xl.info-btn { background: #00bcd4; }
         
+        #btn-reclaim { display: none; position: absolute; top: 70px; right: 15px; z-index: 9999; background: #e91e63; color: white; border: none; padding: 10px 20px; border-radius: 25px; font-weight: bold; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.5); font-size: 15px; cursor: pointer; animation: pulse 1.5s infinite alternate; }
+
         #mobile-notice-overlay { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 183, 77, 0.95); color: #000; padding: 10px 24px; border-radius: 30px; font-weight: 900; font-size: 18px; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5); z-index: 1000; border: 3px solid #fff; pointer-events: none; display: none; animation: bounce 0.5s infinite alternate; }
         @keyframes bounce { from { transform: translate(-50%, -55%); } to { transform: translate(-50%, -45%); } }
 
@@ -132,9 +105,14 @@
 </head>
 <body>
 
+<div id="orientation-warning">
+    <div style="font-size: 50px; margin-bottom: 20px;">🔄</div>
+    為了獲得最佳遊戲體驗<br>請將手機轉為橫向
+</div>
+
 <div id="seat-selection">
     <h2 style="margin-bottom:5px;">選擇您的座位</h2>
-    <h3 style="color: #ffb74d; font-size: 14px; margin-top:0; margin-bottom:20px;">(支援光速斷線接管，AI大腦已解鎖)</h3>
+    <h3 style="color: #ffb74d; font-size: 14px; margin-top:0; margin-bottom:20px;">(支援15秒斷線保護，手動解除AI)</h3>
     <div style="width: 100%; max-width: 400px; display:flex; flex-direction:column; align-items:center;">
         <button class="seat-btn" id="btn-seat-0">玩家 1 (等待中)</button>
         <button class="seat-btn" id="btn-seat-1">玩家 2 (等待中)</button>
@@ -152,6 +130,8 @@
 
 <div class="app-container">
     <div id="mobile-notice-overlay">🔔 輪到您叫分 🔔</div>
+    
+    <button id="btn-reclaim">🙋‍♂️ 解除 AI 託管</button>
 
     <div class="header">
         <div class="header-top">
@@ -222,11 +202,10 @@
     let savedSeat = sessionStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
     let smartComboState = {}; 
+    let offlineTimers = {}; // 15秒倒數計時器
 
     window.addEventListener('beforeunload', () => {
-        if (mySeat !== -1) {
-            update(roomRef, { [`players/${mySeat}`]: "bot" });
-        }
+        if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
     });
 
     const initialGameState = {
@@ -245,9 +224,17 @@
         if (mySeat !== -1) {
             document.getElementById('seat-selection').style.display = 'none';
             document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
-            const myPlayerRef = ref(db, `room/table1/players/${mySeat}`);
-            onDisconnect(myPlayerRef).set("bot").then(() => {
-                update(roomRef, { [`players/${mySeat}`]: "online" });
+            
+            const connectedRef = ref(db, ".info/connected");
+            onValue(connectedRef, (snap) => {
+                if (snap.val() === true) {
+                    const myPlayerRef = ref(db, `room/table1/players/${mySeat}`);
+                    onDisconnect(myPlayerRef).set("offline").then(() => {
+                        if (dbState.players && dbState.players[mySeat] !== "bot") {
+                            update(roomRef, { [`players/${mySeat}`]: "online" });
+                        }
+                    });
+                }
             });
         }
     }
@@ -377,6 +364,25 @@
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
             
+            // 處理 15 秒斷線寬限期
+            const onlinePlayers = dbState.players.map((p, i) => p === "online" ? i : -1).filter(i => i !== -1);
+            const isHost = onlinePlayers.length > 0 && onlinePlayers[0] === mySeat;
+
+            dbState.players.forEach((status, idx) => {
+                if (status === "offline") {
+                    if (!offlineTimers[idx]) {
+                        offlineTimers[idx] = setTimeout(() => {
+                            if (isHost) update(roomRef, { [`players/${idx}`]: "bot" });
+                        }, 15000);
+                    }
+                } else {
+                    if (offlineTimers[idx]) {
+                        clearTimeout(offlineTimers[idx]);
+                        delete offlineTimers[idx];
+                    }
+                }
+            });
+
             renderGame();
 
             if (dbState.gameState !== "gameOver") {
@@ -410,24 +416,18 @@
         const currentPlayers = dbState?.players || [null, null, null];
         if (currentPlayers[seatIdx] === "online") { alert("此座位已被真人選擇！"); return; }
         
-        // 試圖進入全螢幕並鎖定橫向 (需由使用者點擊觸發)
         try {
             if (document.documentElement.requestFullscreen) {
                 await document.documentElement.requestFullscreen();
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock("landscape");
-                }
+                if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape");
             }
-        } catch (err) {
-            console.log("瀏覽器不支援強制橫向或全螢幕，將依賴 CSS 提示", err);
-        }
+        } catch (err) { console.log("瀏覽器不支援強制橫向，依賴 CSS 提示"); }
 
-        mySeat = seatIdx; 
-        sessionStorage.setItem('mySeat', mySeat); 
+        mySeat = seatIdx; sessionStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
         
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
-        onDisconnect(myPlayerRef).set("bot").then(() => {
+        onDisconnect(myPlayerRef).set("offline").then(() => {
             const updates = {}; updates[`players/${seatIdx}`] = "online";
             update(roomRef, updates).then(() => { document.getElementById('seat-selection').style.display = 'none'; });
         });
@@ -436,6 +436,10 @@
     document.getElementById('btn-seat-0').onclick = () => join(0);
     document.getElementById('btn-seat-1').onclick = () => join(1);
     document.getElementById('btn-seat-2').onclick = () => join(2);
+
+    document.getElementById('btn-reclaim').onclick = () => {
+        if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "online" });
+    };
 
     function triggerEffectPopup(patternName) {
         const popup = document.getElementById('pattern-effect-popup');
@@ -453,6 +457,7 @@
                 const status = playersList[i];
                 if (status === "online") { btn.disabled = (mySeat === i); btn.innerText = `玩家 ${i+1} (真人連線)`; }
                 else if (status === "bot") { btn.disabled = false; btn.innerText = `玩家 ${i+1} (電腦 - 點擊接管)`; }
+                else if (status === "offline") { btn.disabled = true; btn.innerText = `玩家 ${i+1} (暫時離線)`; }
                 else { btn.disabled = false; btn.innerText = `玩家 ${i+1} (點擊入座)`; }
             }
         }
@@ -472,20 +477,21 @@
             const alertStyle = count <= 2 ? "color: #ff5252; font-weight: 900; text-shadow: 0 0 5px rgba(255,82,82,0.8);" : "color: #81c784;";
             const countDisplay = isPlaying ? `<span style="${alertStyle} font-size: 11px; margin-left: 2px;">(剩${count}張)</span>` : "";
             
-            // --- 新增的 UI 判斷邏輯 ---
             const isMe = (i === mySeat);
             const isLandlord = (i === dbState.landlord);
             const isActive = (i === dbState.currentTurn && (dbState.gameState === "calling" || dbState.gameState === "playing"));
             
-            // 動態疊加 Class
             let classNames = "history-item";
             if (isMe) classNames += " is-me";
             if (isActive) classNames += " is-active";
             
-            // 皇冠標記
             const roleIcon = isLandlord ? "👑" : "";
             
-            historyHTML += `<div class="${classNames}">${roleIcon}P${i+1}${countDisplay}: ${hist[i]}</div>`;
+            let statusText = "";
+            if (playersList[i] === "offline") statusText = " <span style='color:#ff9800; font-size:10px;'>(連線中)</span>";
+            else if (playersList[i] === "bot") statusText = " <span style='color:#9e9e9e; font-size:10px;'>(AI 託管)</span>";
+
+            historyHTML += `<div class="${classNames}">${roleIcon}P${i+1}${statusText}${countDisplay}: ${hist[i]}</div>`;
         }
         historyBox.innerHTML = historyHTML;
 
@@ -544,8 +550,19 @@
         document.getElementById('btn-start').style.display = canStart ? 'inline-block' : 'none';
         
         const isMyTurn = dbState.currentTurn === mySeat && dbState.gameState !== "gameOver";
-        document.getElementById('call-controls').style.display = (dbState.gameState === "calling" && isMyTurn) ? 'flex' : 'none';
-        document.getElementById('game-controls').style.display = (dbState.gameState === "playing" && isMyTurn) ? 'flex' : 'none';
+        
+        const btnReclaim = document.getElementById('btn-reclaim');
+        if (btnReclaim) {
+            if (mySeat !== -1 && dbState.players[mySeat] === "bot") {
+                btnReclaim.style.display = "block";
+                document.getElementById('call-controls').style.display = 'none';
+                document.getElementById('game-controls').style.display = 'none';
+            } else {
+                btnReclaim.style.display = "none";
+                document.getElementById('call-controls').style.display = (dbState.gameState === "calling" && isMyTurn) ? 'flex' : 'none';
+                document.getElementById('game-controls').style.display = (dbState.gameState === "playing" && isMyTurn) ? 'flex' : 'none';
+            }
+        }
 
         if (dbState.gameState === "calling" && isMyTurn) {
             document.getElementById('btn-call-1').disabled = (dbState.highestBid >= 1);
@@ -562,13 +579,10 @@
         const myHand = dbState.cards ? (dbState.cards[`p${mySeat}`] || []) : [];
         myHand.sort((a,b) => cardWeights[a.num] - cardWeights[b.num]);
 
-        // =========================================================
-        // 💡 智能一鍵選牌系統 (已修正 idx 變數衝突 BUG)
-        // =========================================================
         const smartActionsZone = document.getElementById('smart-actions');
         smartActionsZone.innerHTML = "";
         
-        if (dbState.gameState === "playing" && isMyTurn) {
+        if (dbState.gameState === "playing" && isMyTurn && dbState.players[mySeat] !== "bot") {
             const combos = [];
             
             if (deskCards.length === 0) {
@@ -623,7 +637,6 @@
                     const currentOption = combo.options[currentIdx];
                     
                     currentOption.forEach(cc => {
-                        // ✨ 真正的解藥在這裡：加入 idx 參數，徹底解決 ReferenceError 崩潰
                         const handIdx = myHand.findIndex((hc, idx) => hc.suit === cc.suit && hc.num === cc.num && !selectedCards.includes(idx));
                         if (handIdx > -1) selectedCards.push(handIdx);
                     });
@@ -777,15 +790,11 @@
         update(roomRef, updates);
     };
 
-    // =========================================================
-    // 🤖 AI 邏輯適應連線引擎 (已加入 Host 權限判斷，防腦裂)
-    // =========================================================
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
         if (dbState.gameState === "gameOver") return;
 
-        // ✨ 選出房間主機，統一由主機的瀏覽器來幫電腦下棋
         const onlinePlayers = playersList.map((p, index) => p === "online" ? index : -1).filter(i => i !== -1);
         const isHost = onlinePlayers.length > 0 && onlinePlayers[0] === mySeat;
 
