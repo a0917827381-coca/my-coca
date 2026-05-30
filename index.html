@@ -7,7 +7,7 @@
     
     <style>
         /* =========================================
-           1. 戰場基底設定 (徹底解放物理空間)
+           1. 戰場基底設定
            ========================================= */
         body {
             margin: 0;
@@ -47,13 +47,12 @@
             z-index: 10;
         }
 
-        .header-left button, #btn-clear-room {
+        .header-left button {
             background: #e74c3c;
             color: white;
             border: none;
             padding: 6px 12px;
             border-radius: 4px;
-            margin-right: 5px;
             font-weight: bold;
             cursor: pointer;
         }
@@ -77,7 +76,7 @@
         }
 
         /* =========================================
-           3. 中央戰場與浮動提示 
+           3. 中央戰場與提示
            ========================================= */
         .battlefield {
             flex: 1;
@@ -88,7 +87,6 @@
         }
 
         .turn-indicator {
-            /* 只保留視覺外觀的設定，位置交給 HTML 的 style 去控制 */
             background: #f39c12;
             color: white;
             border-radius: 20px;
@@ -98,7 +96,6 @@
             z-index: 50;
         }
 
-        /* 歷史紀錄與底牌區塊樣式 */
         #history-box { position: absolute; top: 10px; left: 10px; font-size: 14px; }
         .history-item { margin-bottom: 4px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; }
         .history-item.is-me { border-left: 3px solid #3498db; }
@@ -139,11 +136,11 @@
         .smart-actions {
             position: fixed;
             top: 50%;
-            right: 20px; /* 貼齊畫面右側，保留 20px 安全邊距 */
-            left: auto; /* 覆蓋掉原本的 left 數值 */
-            transform: translateY(-50%); /* 移除 X 軸偏移，改為 Y 軸垂直置中 */
+            right: 20px;
+            left: auto;
+            transform: translateY(-50%);
             display: flex;
-            flex-direction: column; /* 關鍵：改為垂直排列，避免按鈕超出螢幕邊緣 */
+            flex-direction: column;
             gap: 10px;
             z-index: 100;
         }
@@ -199,13 +196,11 @@
         <div class="header-left" style="display: flex; align-items: center; gap: 8px;">
             <button id="btn-force-reset">🔄 重置牌局</button>
             <button id="btn-fullscreen">🔲 全螢幕</button>
-            
             <div id="mobile-notice-overlay" class="turn-indicator" style="display:none; position: static; transform: none; padding: 4px 12px; font-size: 14px; margin: 0; white-space: nowrap;">🔔 輪到您 🔔</div>
         </div>
         
         <div class="header-center" style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <span id="log">請選位開局，斷線時電腦將自動接管</span>
-            
             <div id="my-identity" style="background: rgba(0,0,0,0.6); border: 1px solid #555; padding: 3px 15px; border-radius: 12px; font-size: 12px; color: #fff; display: none;"></div>
         </div>
         
@@ -234,9 +229,7 @@
         <div id="mini-dipai-box"></div>
         
         <div id="play-area" style="display: flex; justify-content: center; align-items: center; min-height: 120px; z-index: 10; gap: 5px; margin-left: 20px;"></div>
-        
         <div id="large-dipai-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); gap: 10px; z-index: 20;"></div>
-        
         <div id="pattern-effect-popup" style="display:none; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:50px; color:#f1c40f; font-weight:bold; z-index:300; text-shadow: 2px 2px 5px black;"></div>
     </div>
 
@@ -263,14 +256,21 @@
         <button id="btn-restart-game" style="padding: 12px 30px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer;">🔄 重新開始</button>
     </div>
 
+    <div id="warning-toast" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(231, 76, 60, 0.95); color:white; padding:15px 30px; border-radius:10px; font-size:18px; font-weight:bold; z-index:9999; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.5); white-space: pre-line;"></div>
 </div>
 
 <script type="module">
-    // 全螢幕功能
+    window.showWarning = function(msg) {
+        const toast = document.getElementById('warning-toast');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    };
+
     document.getElementById('btn-fullscreen').addEventListener('click', () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
-                alert(`全螢幕請求失敗: ${err.message}`);
+                showWarning(`全螢幕請求失敗: ${err.message}`);
             });
         } else {
             document.exitFullscreen();
@@ -307,7 +307,6 @@
         if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
     });
 
-    // 加入 extraMultiplier 預設值為 1
     const initialGameState = {
         players: [null, null, null], cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
         history: ["無", "無", "無"], logs: "請選位開局，斷線時電腦將自動接管", gameState: "waiting", 
@@ -526,14 +525,14 @@
 
     window.join = async function(seatIdx) {
         const currentPlayers = dbState?.players || [null, null, null];
-        if (currentPlayers[seatIdx] === "online") { alert("此座位已被真人選擇！"); return; }
+        if (currentPlayers[seatIdx] === "online") { showWarning("此座位已被真人選擇！"); return; }
         
         try {
             if (document.documentElement.requestFullscreen) {
                 await document.documentElement.requestFullscreen();
                 if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape");
             }
-        } catch (err) { console.log("瀏覽器不支援強制橫向，依賴 CSS 提示"); }
+        } catch (err) { console.log("瀏覽器不支援強制橫向"); }
 
         mySeat = seatIdx; localStorage.setItem('mySeat', mySeat); 
         document.getElementById('my-identity').style.display = 'block';
@@ -575,7 +574,6 @@
             }
         }
 
-        // 新版倍率計算方式：底分 x 累積的額外倍率
         const currentMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * (dbState.extraMultiplier || 1);
         document.getElementById('multiplier-badge').innerText = `${currentMultiplier} 倍`;
         document.getElementById('landlord-identity').innerText = dbState.landlord !== -1 ? `👑 P${dbState.landlord + 1}` : `叫分: ${dbState.highestBid}`;
@@ -700,7 +698,6 @@
             const combos = [];
             
             if (deskCards.length === 0) {
-                // 累積所有長度的順子，不中斷搜尋
                 let allStraights = [];
                 for(let len = 12; len >= 5; len--) {
                     const res = getAllStraights(myHand, len, 2);
@@ -708,14 +705,12 @@
                 }
                 if (allStraights.length > 0) { combos.push({ name: `✨ 順子`, options: allStraights }); }
 
-                // 累積所有長度的連對，不中斷搜尋
                 let allConsecutivePairs = [];
                 for(let len = 10; len >= 6; len -= 2) {
                     const res = getAllConsecutivePairs(myHand, len, 2);
                     if (res.length > 0) { allConsecutivePairs = allConsecutivePairs.concat(res); }
                 }
                 if (allConsecutivePairs.length > 0) { combos.push({ name: `✨ 連對`, options: allConsecutivePairs }); }
-                
                 
                 const counts = {}; myHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
                 const threeKeys = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => cardWeights[a] - cardWeights[b]);
@@ -873,14 +868,13 @@
         update(roomRef, updates);
     };
 
-    // 真人玩家出牌處理 (包含新的倍率規則)
     document.getElementById('btn-play').onclick = () => {
-        if (selectedCards.length === 0) { alert("請先選牌！"); return; }
+        if (selectedCards.length === 0) { showWarning("請先選牌！"); return; }
         const myHandCards = dbState.cards[`p${mySeat}`] || [];
         const playCards = selectedCards.map(idx => myHandCards[idx]);
         
         const currentPattern = analyzeCardPattern(playCards);
-        if (currentPattern.type === "不合法牌型") { alert("⚠️ 選擇的卡牌不符合任何合法的鬥地主牌型，請重新選牌！"); return; }
+        if (currentPattern.type === "不合法牌型") { showWarning("⚠️ 卡牌不符合規則，請重新選牌！"); return; }
 
         const deskCards = dbState.cards?.desk || [];
         if (deskCards.length > 0) {
@@ -894,7 +888,7 @@
             } else {
                 if (currentPattern.type === deskPattern.type && playCards.length === deskCards.length && currentPattern.weight > deskPattern.weight) { isValidPlay = true; }
             }
-            if (!isValidPlay) { alert(`⚠️ 你的出牌無法壓制桌上牌型！\n(桌上是 ${deskPattern.type}，你必須出更大的同類牌型或炸彈)`); return; }
+            if (!isValidPlay) { showWarning(`⚠️ 無法壓制桌上牌型！\n(桌上是 ${deskPattern.type})`); return; }
         }
 
         const remainingCards = myHandCards.filter((_, idx) => !selectedCards.includes(idx));
@@ -903,7 +897,6 @@
         const nextTurn = (dbState.currentTurn + 1) % 3; const updates = {};
         updates[`cards/p${mySeat}`] = remainingCards; updates[`cards/desk`] = playCards;
         
-        // --- 【新增倍率計算系統】 ---
         const isFinal = remainingCards.length === 0;
         let turnMult = 1;
         let effectLog = "";
@@ -919,7 +912,6 @@
         if (turnMult > 1) {
             updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
         }
-        // ------------------------
         
         const cardsText = playCards.map(c => `${c.suit}${c.num}`).join(' ');
         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(currentPattern.type)) {
@@ -950,7 +942,6 @@
         update(roomRef, updates);
     };
 
-    // AI 託管出牌處理 (同步支援倍率疊加)
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
@@ -1036,7 +1027,6 @@
 
                         cardsLeftCount = remaining.length; updates[`cards/p${activeTurn}`] = remaining; updates[`cards/desk`] = cardsToPlay;
                         
-                        // --- 【AI 倍率計算系統】 ---
                         const isFinal = remaining.length === 0;
                         let turnMult = 1;
                         let effectLog = "";
@@ -1052,7 +1042,6 @@
                         if (turnMult > 1) {
                             updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
                         }
-                        // ------------------------
 
                         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) { updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`; } 
                         else { updates[`history/${activeTurn}`] = `${playPattern.type}: ` + cardsToPlay.map(c=>c.suit+c.num).join(' '); }
