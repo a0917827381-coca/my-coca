@@ -12,7 +12,7 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #143520; /* 經典賭桌綠 */
+            background-color: #143520;
             color: white;
             font-family: "Microsoft JhengHei", Arial, sans-serif;
             height: 100dvh; 
@@ -100,6 +100,7 @@
         .history-item { margin-bottom: 4px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; }
         .history-item.is-me { border-left: 3px solid #3498db; }
         .history-item.is-active { border: 1px solid #f39c12; }
+        .chip-badge { color: #f1c40f; font-weight: bold; margin-right: 5px; }
         
         #mini-dipai-box { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
         .mini-dipai-card { background: white; color: black; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; }
@@ -194,7 +195,7 @@
     
     <div class="header-top">
         <div class="header-left" style="display: flex; align-items: center; gap: 8px;">
-            <button id="btn-force-reset">🔄 重置牌局</button>
+            <button id="btn-force-reset">🔄 結算重置</button>
             <button id="btn-fullscreen">🔲 全螢幕</button>
             <div id="mobile-notice-overlay" class="turn-indicator" style="display:none; position: static; transform: none; padding: 4px 12px; font-size: 14px; margin: 0; white-space: nowrap;">🔔 輪到您 🔔</div>
         </div>
@@ -252,10 +253,11 @@
     <div id="game-over-overlay" style="display:none; flex-direction:column; align-items:center; position:fixed; top:0; left:0; width:100%; height: 100%; background:rgba(0,0,0,0.85); z-index:500; justify-content: center;">
         <h2 id="result-title" style="font-size: 36px; margin-bottom: 10px; color: #f1c40f;"></h2>
         <p id="result-desc" style="font-size: 20px; text-align: center; white-space: pre-line; margin-bottom: 20px;"></p>
-        <div id="result-scores" style="margin-bottom: 30px; font-size: 22px; width: 80%; max-width: 300px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
-        <button id="btn-restart-game" style="padding: 12px 30px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer;">🔄 重新開始</button>
+        <div id="result-scores" style="margin-bottom: 30px; font-size: 20px; width: 80%; max-width: 350px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
+        <button id="btn-restart-game" style="padding: 12px 30px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer;">🃏 下一局</button>
     </div>
 
+    <!-- 自訂遊戲警告彈窗 -->
     <div id="warning-toast" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:rgba(231, 76, 60, 0.95); color:white; padding:15px 30px; border-radius:10px; font-size:18px; font-weight:bold; z-index:9999; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.5); white-space: pre-line;"></div>
 </div>
 
@@ -297,6 +299,7 @@
         '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 
         'J':11, 'Q':12, 'K':13, 'A':14, '2':15, '小':16, '大':17
     };
+    const BASE_SCORE = 100; // 基礎底分
 
     let savedSeat = localStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
@@ -307,11 +310,12 @@
         if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
     });
 
+    // 加入 chips 陣列紀錄總籌碼
     const initialGameState = {
         players: [null, null, null], cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
         history: ["無", "無", "無"], logs: "請選位開局，斷線時電腦將自動接管", gameState: "waiting", 
         currentTurn: 0, landlord: -1, callCount: 0, passCount: 0, highestBid: 0, highestBidder: -1,   
-        winner: -1, lastPattern: "無", extraMultiplier: 1 
+        winner: -1, lastPattern: "無", extraMultiplier: 1, chips: [12000, 12000, 12000]
     };
     
     let dbState = JSON.parse(JSON.stringify(initialGameState));
@@ -459,7 +463,9 @@
                 currentTurn: typeof data.currentTurn === 'number' ? data.currentTurn : 0, landlord: typeof data.landlord === 'number' ? data.landlord : -1,
                 callCount: typeof data.callCount === 'number' ? data.callCount : 0, passCount: typeof data.passCount === 'number' ? data.passCount : 0,
                 highestBid: typeof data.highestBid === 'number' ? data.highestBid : 0, highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1,
-                winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", extraMultiplier: typeof data.extraMultiplier === 'number' ? data.extraMultiplier : 1
+                winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", 
+                extraMultiplier: typeof data.extraMultiplier === 'number' ? data.extraMultiplier : 1,
+                chips: data.chips || [12000, 12000, 12000] // 確保籌碼狀態被抓取
             };
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
@@ -493,34 +499,43 @@
 
     checkReconnect();
 
+    // 拔除 confirm，直接重置房間資料與籌碼
     document.getElementById('btn-clear-room').onclick = () => {
-        if(confirm("確定重設房間數據？")) {
-            if (mySeat !== -1) onDisconnect(ref(db, `room/table1/players/${mySeat}`)).cancel();
-            localStorage.removeItem('mySeat');
-            set(roomRef, initialGameState).then(() => location.reload());
-        }
+        if (mySeat !== -1) onDisconnect(ref(db, `room/table1/players/${mySeat}`)).cancel();
+        localStorage.removeItem('mySeat');
+        set(roomRef, initialGameState).then(() => {
+            showWarning("房間已清空，所有玩家需重新入座");
+            setTimeout(() => location.reload(), 1500);
+        });
     };
 
+    // 重新開始：檢查是否有人破產，決定是否重置籌碼
     document.getElementById('btn-restart-game').onclick = () => {
+        let nextChips = [...(dbState.chips || [12000, 12000, 12000])];
+        if (nextChips.some(c => c <= 0)) {
+            nextChips = [12000, 12000, 12000]; // 破產則重置整輪籌碼
+        }
+        
         const updates = {
             "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
             "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
             "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
-            "lastPattern": "無", "extraMultiplier": 1, "logs": "等待發牌中..."
+            "lastPattern": "無", "extraMultiplier": 1, "chips": nextChips, "logs": "等待發牌中..."
         };
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
     
+    // 拔除 confirm，強制重置牌局(帶籌碼重置)
     document.getElementById('btn-force-reset').onclick = () => {
-        if(confirm("確定要中斷這局，清空所有人的手牌重新開始嗎？")) {
-            const updates = {
-                "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
-                "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
-                "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
-                "lastPattern": "無", "extraMultiplier": 1, "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌！請重新發牌。`
-            };
-            update(roomRef, updates); 
-        }
+        const updates = {
+            "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
+            "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
+            "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
+            "lastPattern": "無", "extraMultiplier": 1, "chips": [12000, 12000, 12000], 
+            "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌與籌碼！`
+        };
+        update(roomRef, updates);
+        showWarning("已強制結算並重置所有狀態！");
     };    
 
     window.join = async function(seatIdx) {
@@ -581,6 +596,7 @@
         const historyBox = document.getElementById('history-box');
         const hist = dbState.history || ["無", "無", "無"];
         const counts = [dbState.cards?.p0?.length || 0, dbState.cards?.p1?.length || 0, dbState.cards?.p2?.length || 0];
+        const chipsList = dbState.chips || [12000, 12000, 12000];
 
         let historyHTML = "";
         for(let i = 0; i < 3; i++) {
@@ -603,7 +619,8 @@
             if (playersList[i] === "offline") statusText = " <span style='color:#ff9800; font-size:10px;'>(連線中)</span>";
             else if (playersList[i] === "bot") statusText = " <span style='color:#9e9e9e; font-size:10px;'>(AI 託管)</span>";
 
-            historyHTML += `<div class="${classNames}">${roleIcon}P${i+1}${statusText}${countDisplay}: ${hist[i]}</div>`;
+            // 在名稱前面加入當前籌碼狀態
+            historyHTML += `<div class="${classNames}"><span class="chip-badge">[💰 ${chipsList[i]}]</span>${roleIcon}P${i+1}${statusText}${countDisplay}: ${hist[i]}</div>`;
         }
         historyBox.innerHTML = historyHTML;
 
@@ -634,27 +651,42 @@
             const winTitle = document.getElementById('result-title');
             const winDesc = document.getElementById('result-desc');
             const scoreBoard = document.getElementById('result-scores');
+            const restartBtn = document.getElementById('btn-restart-game');
             
             const winSeat = dbState.winner; const landSeat = dbState.landlord;
             const isWinnerLandlord = (winSeat === landSeat); const amILandlord = (mySeat === landSeat);
             
-            const finalAmount = 100 * currentMultiplier; let scores = [0, 0, 0];
+            // 計算這次結算的得失分 (僅供介面顯示)
+            const finalAmount = BASE_SCORE * currentMultiplier; 
+            let scoreDelta = [0, 0, 0];
             
             if (isWinnerLandlord) {
-                scores[landSeat] = finalAmount * 2; scores[(landSeat+1)%3] = -finalAmount; scores[(landSeat+2)%3] = -finalAmount;
+                scoreDelta[landSeat] = finalAmount * 2; scoreDelta[(landSeat+1)%3] = -finalAmount; scoreDelta[(landSeat+2)%3] = -finalAmount;
                 winDesc.innerText = `地主 (玩家 ${landSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             } else {
-                scores[landSeat] = -(finalAmount * 2); scores[(landSeat+1)%3] = finalAmount; scores[(landSeat+2)%3] = finalAmount;
+                scoreDelta[landSeat] = -(finalAmount * 2); scoreDelta[(landSeat+1)%3] = finalAmount; scoreDelta[(landSeat+2)%3] = finalAmount;
                 winDesc.innerText = `農民 (玩家 ${winSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = !amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             }
             winTitle.style.color = (isWinnerLandlord && amILandlord) || (!isWinnerLandlord && !amILandlord) ? "#2ecc71" : "#e74c3c";
             
-            scoreBoard.innerHTML = scores.map((score, idx) => {
+            // 判斷是否有人破產
+            const hasBankrupt = chipsList.some(c => c <= 0);
+            restartBtn.innerText = hasBankrupt ? "🔄 破產！重新一輪" : "🃏 下一局";
+            if(hasBankrupt) restartBtn.style.background = "#e74c3c"; else restartBtn.style.background = "#3498db";
+
+            scoreBoard.innerHTML = scoreDelta.map((delta, idx) => {
                 const isMe = idx === mySeat ? "(你)" : ""; const role = idx === landSeat ? "👑" : "🌾";
-                const sign = score > 0 ? "+" : ""; const colorStyle = score > 0 ? "color:#2ecc71;" : "color:#e74c3c;";
-                return `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${role} P${idx+1} ${isMe}</span><span style="${colorStyle}">${sign}${score}</span></div>`;
+                const sign = delta > 0 ? "+" : ""; const colorStyle = delta > 0 ? "color:#2ecc71;" : "color:#e74c3c;";
+                // 同時顯示單局加減分與最新籌碼餘額
+                return `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px;">
+                            <span>${role} P${idx+1} ${isMe}</span>
+                            <div style="text-align:right;">
+                                <div style="${colorStyle} font-weight:bold;">${sign}${delta}</div>
+                                <div style="font-size:14px; color:#aaa;">餘額: 💰${chipsList[idx]}</div>
+                            </div>
+                        </div>`;
             }).join('');
         } else { gameOverOverlay.style.display = 'none'; }
 
@@ -868,6 +900,24 @@
         update(roomRef, updates);
     };
 
+    // 計算贏家籌碼寫入資料庫
+    function calculateFinalChips(winSeat, finalMultiplier) {
+        let newChips = [...(dbState.chips || [12000, 12000, 12000])];
+        const finalAmount = BASE_SCORE * finalMultiplier;
+        const landSeat = dbState.landlord;
+        
+        if (winSeat === landSeat) {
+            newChips[landSeat] += finalAmount * 2;
+            newChips[(landSeat+1)%3] -= finalAmount;
+            newChips[(landSeat+2)%3] -= finalAmount;
+        } else {
+            newChips[landSeat] -= finalAmount * 2;
+            newChips[(landSeat+1)%3] += finalAmount;
+            newChips[(landSeat+2)%3] += finalAmount;
+        }
+        return newChips;
+    }
+
     document.getElementById('btn-play').onclick = () => {
         if (selectedCards.length === 0) { showWarning("請先選牌！"); return; }
         const myHandCards = dbState.cards[`p${mySeat}`] || [];
@@ -909,9 +959,8 @@
             if (isFinal) { turnMult *= 4; effectLog += " (絕殺 x4)"; }
         }
 
-        if (turnMult > 1) {
-            updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
-        }
+        let newExtraMult = (dbState.extraMultiplier || 1) * turnMult;
+        if (turnMult > 1) { updates[`extraMultiplier`] = newExtraMult; }
         
         const cardsText = playCards.map(c => `${c.suit}${c.num}`).join(' ');
         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(currentPattern.type)) {
@@ -919,8 +968,11 @@
         } else { updates[`history/${mySeat}`] = `[${currentPattern.type}] ${cardsText}`; }
         
         updates[`passCount`] = 0; 
-        if (remainingCards.length === 0) {
+        if (isFinal) {
             updates[`gameState`] = "gameOver"; updates[`winner`] = mySeat; updates[`logs`] = `🎉 遊戲結束！玩家 ${mySeat + 1} 獲勝！`;
+            // 當下直接更新籌碼餘額寫入資料庫
+            const finalMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * newExtraMult;
+            updates[`chips`] = calculateFinalChips(mySeat, finalMultiplier);
         } else {
             updates[`currentTurn`] = nextTurn; updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}${effectLog}。輪到 玩家 ${nextTurn + 1}`;
         }
@@ -1039,9 +1091,8 @@
                             if (isFinal) { turnMult *= 4; effectLog += " (絕殺 x4)"; }
                         }
 
-                        if (turnMult > 1) {
-                            updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
-                        }
+                        let newExtraMult = (dbState.extraMultiplier || 1) * turnMult;
+                        if (turnMult > 1) { updates[`extraMultiplier`] = newExtraMult; }
 
                         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) { updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`; } 
                         else { updates[`history/${activeTurn}`] = `${playPattern.type}: ` + cardsToPlay.map(c=>c.suit+c.num).join(' '); }
@@ -1049,6 +1100,8 @@
                         
                         if (cardsLeftCount === 0) {
                             updates[`gameState`] = "gameOver"; updates[`winner`] = activeTurn; updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
+                            const finalMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * newExtraMult;
+                            updates[`chips`] = calculateFinalChips(activeTurn, finalMultiplier);
                         } else {
                             updates[`currentTurn`] = nextTurn;
                             updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 打出 ${updates[`history/${activeTurn}`]}${effectLog}。`; 
