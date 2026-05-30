@@ -220,37 +220,54 @@
 
     <div class="battlefield">
         <div class="turn-indicator">🔔 輪到您叫分 🔔</div>
-        </div>
+        
+        <!-- 補上原本缺失，但 JS 必須讀取的戰場 UI 區塊 -->
+        <div id="play-area" style="display: flex; justify-content: center; min-height: 100px;"></div>
+        <div id="large-dipai-box" style="display: flex; justify-content: center; gap: 10px;"></div>
+    </div>
 
-    <div class="smart-actions">
-        </div>
+    <!-- 補上缺失的系統情報與特效區塊 (預設隱藏或靠 JS 注入) -->
+    <div id="seat-selection" style="text-align: center; margin: 10px 0;">
+        <button id="btn-seat-0">座位 1</button>
+        <button id="btn-seat-1">座位 2</button>
+        <button id="btn-seat-2">座位 3</button>
+    </div>
+    <div id="my-identity" style="display:none;"></div>
+    <div id="log" style="display:none;"></div>
+    <div id="multiplier-badge" style="display:none;"></div>
+    <div id="landlord-identity" style="display:none;"></div>
+    <div id="history-box" style="display:none;"></div>
+    <div id="mini-dipai-box" style="display:none;"></div>
+    
+    <div id="game-over-overlay" style="display:none; flex-direction:column; align-items:center; position:absolute; top:20%; width:100%; background:rgba(0,0,0,0.8); z-index:200; padding:20px;">
+        <h2 id="result-title"></h2>
+        <p id="result-desc"></p>
+        <div id="result-scores"></div>
+    </div>
+    <div id="mobile-notice-overlay" style="display:none;"></div>
+    <div id="pattern-effect-popup" style="display:none; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:40px; color:yellow; font-weight:bold; z-index:300;"></div>
 
-    <div class="controls">
-        <button class="btn-call">1分</button>
-        <button class="btn-call">2分</button>
-        <button class="btn-call">3分</button>
-        <button class="btn-pass">不叫</button>
+    <div class="smart-actions" id="smart-actions">
+        <!-- JS 會在這裡動態生成智能選牌按鈕 -->
+    </div>
+
+    <div class="controls" id="game-controls">
+        <button id="btn-call-1" class="btn-call" onclick="submitCall(1)">1分</button>
+        <button id="btn-call-2" class="btn-call" onclick="submitCall(2)">2分</button>
+        <button id="btn-call-3" class="btn-call" onclick="submitCall(3)">3分</button>
+        <button id="btn-pass" class="btn-pass">不叫</button>
+        
+        <!-- 下面這些是 JS 有寫到，但原本漏掉的關鍵按鈕 -->
+        <button id="btn-play" style="display:none;">出牌</button>
+        <button id="btn-start" style="display:none;">開始遊戲</button>
+        <button id="btn-clear-room" style="display:none;">清空房間</button>
+        <button id="btn-restart-game" style="display:none;">重新開始</button>
+        <button id="btn-reclaim" style="display:none;">接管座位</button>
     </div>
 
     <div class="hand-container" id="player-hand">
-        <div class="card text-red">3</div>
-        <div class="card text-red">4</div>
-        <div class="card text-red">5</div>
-        <div class="card text-red">6</div>
-        <div class="card text-black">7</div>
-        <div class="card text-black">8</div>
-        <div class="card text-red">9</div>
-        <div class="card text-black">10</div>
-        <div class="card text-black">J</div>
-        <div class="card text-red">Q</div>
-        <div class="card text-black">K</div>
-        <div class="card text-red">A</div>
-        <div class="card text-black">2</div>
-        <div class="card text-black">小</div>
-        <div class="card text-red">大</div>
+        <!-- 這裡預設先留空，避免畫面一開始出現固定的假牌，JS 載入後會自動派發真正的手牌 -->
     </div>
-
-</div>
 
 <script type="module">
     
