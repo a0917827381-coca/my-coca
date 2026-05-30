@@ -15,10 +15,9 @@
             background-color: #143520; /* 經典賭桌綠 */
             color: white;
             font-family: "Microsoft JhengHei", Arial, sans-serif;
-            /* 關鍵：使用 dvh 自動適應網址列的出現與消失，防止底部被裁切 */
             height: 100dvh; 
             width: 100vw;
-            overflow: hidden; /* 嚴格禁止上下左右滑動 */
+            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
@@ -28,9 +27,9 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            max-width: 100% !important; /* 強制覆蓋任何預設的置中縮排 */
+            max-width: 100% !important;
             box-sizing: border-box;
-            padding: 5px 15px; /* 左右保留 15px 安全距離，讓手牌不貼死螢幕邊緣 */
+            padding: 5px 15px;
             position: relative;
         }
 
@@ -45,10 +44,10 @@
             padding: 8px 12px;
             border-radius: 8px;
             margin-bottom: 10px;
-            z-index: 10; /* 確保不被牌擋住 */
+            z-index: 10;
         }
 
-        .header-left button {
+        .header-left button, #btn-clear-room {
             background: #e74c3c;
             color: white;
             border: none;
@@ -59,16 +58,13 @@
             cursor: pointer;
         }
         
-        /* 手動全螢幕按鈕，使用耀眼的藍色 */
-        #btn-fullscreen {
-            background: #2196F3;
-        }
+        #btn-fullscreen { background: #2196F3; }
 
         .header-center {
             flex: 1;
             text-align: center;
             font-size: 14px;
-            color: #f1c40f; /* 提示文字用亮黃色 */
+            color: #f1c40f;
             font-weight: bold;
         }
 
@@ -81,7 +77,7 @@
         }
 
         /* =========================================
-           3. 中央戰場與浮動提示 (防撞車設計)
+           3. 中央戰場與浮動提示 
            ========================================= */
         .battlefield {
             flex: 1;
@@ -91,10 +87,9 @@
             position: relative;
         }
 
-        /* 輪到您叫分 / 出牌 的浮動提示框 */
         .turn-indicator {
             position: absolute;
-            top: 10%; /* 定位在畫面上半部，絕對不跟底部的按鈕撞車 */
+            top: 10%;
             background: #f39c12;
             color: white;
             padding: 10px 30px;
@@ -106,13 +101,22 @@
             z-index: 50;
         }
 
+        /* 歷史紀錄與底牌區塊樣式 */
+        #history-box { position: absolute; top: 10px; left: 10px; font-size: 14px; }
+        .history-item { margin-bottom: 4px; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; }
+        .history-item.is-me { border-left: 3px solid #3498db; }
+        .history-item.is-active { border: 1px solid #f39c12; }
+        
+        #mini-dipai-box { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+        .mini-dipai-card { background: white; color: black; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+        .large-dipai-card { width: 50px; height: 70px; background: #333; border: 2px solid #555; border-radius: 6px; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; color: #888; }
+
         /* =========================================
-           4. 操作按鈕區 (精準高度控制)
+           4. 操作按鈕區 
            ========================================= */
-        /* 叫分與一般出牌按鈕 */
         .controls {
             position: fixed;
-            bottom: 120px; /* 懸浮在手牌上方 */
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -128,15 +132,16 @@
             border: none;
             color: white;
             box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            cursor: pointer;
         }
         
         .btn-call { background: #3498db; }
         .btn-pass { background: #e74c3c; }
+        .btn-smart { background: #9b59b6; color: white; border: none; padding: 8px 16px; border-radius: 15px; cursor: pointer; }
 
-        /* 智能選牌快捷鍵 (順子、連對等) */
         .smart-actions {
             position: fixed;
-            bottom: 175px; /* 疊在一般按鈕的更上方 */
+            bottom: 175px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -145,11 +150,11 @@
         }
 
         /* =========================================
-           5. 底部手牌區 (完美舒展)
+           5. 底部手牌區
            ========================================= */
         .hand-container {
             position: fixed;
-            bottom: 15px; /* 貼齊底部，保留一點安全邊距 */
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -165,7 +170,6 @@
             border-radius: 6px;
             border: 1px solid #999;
             box-shadow: -2px 2px 5px rgba(0,0,0,0.2);
-            /* 關鍵：調整負邊距，讓左右空間舒展，牌不會擠成一團 */
             margin-left: -30px; 
             display: flex;
             flex-direction: column;
@@ -175,22 +179,16 @@
             font-weight: bold;
             position: relative;
             transition: transform 0.1s;
+            cursor: pointer;
+            box-sizing: border-box;
         }
 
-        .card:first-child {
-            margin-left: 0;
-        }
+        .card:first-child { margin-left: 0; }
+        .card.selected { transform: translateY(-15px); border: 2px solid #f1c40f; }
 
-        /* 選中牌的彈跳效果 */
-        .card.selected {
-            transform: translateY(-15px);
-            border: 2px solid #f1c40f;
-        }
-
-        /* 紅色花色 */
-        .text-red { color: #e74c3c; }
-        /* 黑色花色 */
+        .text-red, .red { color: #e74c3c; }
         .text-black { color: #2c3e50; }
+        .suit-bottom { font-size: 30px; margin-top: 10px; text-align: center; }
         
     </style>
 </head>
@@ -204,74 +202,71 @@
             <button id="btn-fullscreen">🔲 全螢幕</button>
         </div>
         <div class="header-center">
-            <span id="game-status-text">玩家 3 選擇不叫。輪到 玩家 1 叫分。</span>
+            <span id="log">請選位開局，斷線時電腦將自動接管</span>
         </div>
         <div class="header-right">
-            <span>1 倍</span>
-            <span>叫分: 0</span>
+            <span id="multiplier-badge">1 倍</span>
+            <span id="landlord-identity">叫分: 0</span>
         </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; padding: 0 20px;">
-        <div style="background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 4px;">P1: 無</div>
-        <div style="background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 4px; color:#aaa;">P2 (AI託管): 無</div>
-        <div style="background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 4px; color:#aaa;">P3 (AI託管): 不叫</div>
+    <div style="display: flex; justify-content: space-between; padding: 0 20px; z-index: 20;">
+        <div id="my-identity" style="background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 4px; display: none;"></div>
+        <button id="btn-clear-room">清空房間</button>
+    </div>
+
+    <div id="seat-selection" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 150; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; text-align: center; width: 80%;">
+        <h3 style="margin-top:0;">請選擇座位入座</h3>
+        <button id="btn-seat-0" style="margin: 5px; padding: 10px; width: 90%;">座位 1</button>
+        <button id="btn-seat-1" style="margin: 5px; padding: 10px; width: 90%;">座位 2</button>
+        <button id="btn-seat-2" style="margin: 5px; padding: 10px; width: 90%;">座位 3</button>
+    </div>
+
+    <div style="position: fixed; top: 30%; left: 50%; transform: translateX(-50%); z-index: 100; text-align: center;">
+        <button id="btn-start" style="display:none; padding: 12px 24px; background: #27ae60; color: white; border-radius: 20px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.4);">🎯 開始發牌</button>
+        <button id="btn-reclaim" style="display:none; padding: 12px 24px; background: #f39c12; color: white; border-radius: 20px; border: none; font-size: 18px; font-weight: bold; cursor: pointer;">🤖 接管座位</button>
     </div>
 
     <div class="battlefield">
-        <div class="turn-indicator">🔔 輪到您叫分 🔔</div>
+        <div id="mobile-notice-overlay" class="turn-indicator" style="display:none;">🔔 輪到您 🔔</div>
         
-        <!-- 補上原本缺失，但 JS 必須讀取的戰場 UI 區塊 -->
-        <div id="play-area" style="display: flex; justify-content: center; min-height: 100px;"></div>
-        <div id="large-dipai-box" style="display: flex; justify-content: center; gap: 10px;"></div>
+        <div id="history-box"></div>
+        <div id="mini-dipai-box"></div>
+        
+        <div id="play-area" style="display: flex; justify-content: center; align-items: center; min-height: 120px; z-index: 10; gap: 5px; margin-left: 20px;"></div>
+        
+        <div id="large-dipai-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); gap: 10px; z-index: 20;"></div>
+        
+        <div id="pattern-effect-popup" style="display:none; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:50px; color:#f1c40f; font-weight:bold; z-index:300; text-shadow: 2px 2px 5px black;"></div>
     </div>
 
-    <!-- 補上缺失的系統情報與特效區塊 (預設隱藏或靠 JS 注入) -->
-    <div id="seat-selection" style="text-align: center; margin: 10px 0;">
-        <button id="btn-seat-0">座位 1</button>
-        <button id="btn-seat-1">座位 2</button>
-        <button id="btn-seat-2">座位 3</button>
-    </div>
-    <div id="my-identity" style="display:none;"></div>
-    <div id="log" style="display:none;"></div>
-    <div id="multiplier-badge" style="display:none;"></div>
-    <div id="landlord-identity" style="display:none;"></div>
-    <div id="history-box" style="display:none;"></div>
-    <div id="mini-dipai-box" style="display:none;"></div>
-    
-    <div id="game-over-overlay" style="display:none; flex-direction:column; align-items:center; position:absolute; top:20%; width:100%; background:rgba(0,0,0,0.8); z-index:200; padding:20px;">
-        <h2 id="result-title"></h2>
-        <p id="result-desc"></p>
-        <div id="result-scores"></div>
-    </div>
-    <div id="mobile-notice-overlay" style="display:none;"></div>
-    <div id="pattern-effect-popup" style="display:none; position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:40px; color:yellow; font-weight:bold; z-index:300;"></div>
+    <div class="smart-actions" id="smart-actions"></div>
 
-    <div class="smart-actions" id="smart-actions">
-        <!-- JS 會在這裡動態生成智能選牌按鈕 -->
-    </div>
-
-    <div class="controls" id="game-controls">
+    <div class="controls" id="call-controls" style="display:none;">
         <button id="btn-call-1" class="btn-call" onclick="submitCall(1)">1分</button>
         <button id="btn-call-2" class="btn-call" onclick="submitCall(2)">2分</button>
         <button id="btn-call-3" class="btn-call" onclick="submitCall(3)">3分</button>
-        <button id="btn-pass" class="btn-pass">不叫</button>
-        
-        <!-- 下面這些是 JS 有寫到，但原本漏掉的關鍵按鈕 -->
-        <button id="btn-play" style="display:none;">出牌</button>
-        <button id="btn-start" style="display:none;">開始遊戲</button>
-        <button id="btn-clear-room" style="display:none;">清空房間</button>
-        <button id="btn-restart-game" style="display:none;">重新開始</button>
-        <button id="btn-reclaim" style="display:none;">接管座位</button>
+        <button id="btn-pass-call" class="btn-pass" onclick="submitCall(0)">不叫</button>
     </div>
 
-    <div class="hand-container" id="player-hand">
-        <!-- 這裡預設先留空，避免畫面一開始出現固定的假牌，JS 載入後會自動派發真正的手牌 -->
+    <div class="controls" id="game-controls" style="display:none;">
+        <button id="btn-play" class="btn-call">出牌</button>
+        <button id="btn-pass" class="btn-pass">不出</button>
     </div>
+
+    <div class="hand-container" id="player-hand"></div>
+    
+    <div id="game-over-overlay" style="display:none; flex-direction:column; align-items:center; position:fixed; top:0; left:0; width:100%; height: 100%; background:rgba(0,0,0,0.85); z-index:500; justify-content: center;">
+        <h2 id="result-title" style="font-size: 36px; margin-bottom: 10px; color: #f1c40f;"></h2>
+        <p id="result-desc" style="font-size: 20px; text-align: center; white-space: pre-line; margin-bottom: 20px;"></p>
+        <div id="result-scores" style="margin-bottom: 30px; font-size: 22px; width: 80%; max-width: 300px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
+        <button id="btn-restart-game" style="padding: 12px 30px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer;">🔄 重新開始</button>
+    </div>
+
+</div>
 
 <script type="module">
-    
-    // ▼▼▼ 加入這段全螢幕物理外掛 ▼▼▼
+    // 全螢幕功能
     document.getElementById('btn-fullscreen').addEventListener('click', () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -282,9 +277,6 @@
         }
     });
 
-
-
-    // 下面是你原本的 Firebase 連線和遊戲邏輯...
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getDatabase, ref, onValue, set, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
@@ -309,7 +301,7 @@
     let savedSeat = localStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
     let smartComboState = {}; 
-    let offlineTimers = {}; // 15秒倒數計時器
+    let offlineTimers = {};
 
     window.addEventListener('beforeunload', () => {
         if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
@@ -330,6 +322,7 @@
     function checkReconnect() {
         if (mySeat !== -1) {
             document.getElementById('seat-selection').style.display = 'none';
+            document.getElementById('my-identity').style.display = 'block';
             document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
             
             const connectedRef = ref(db, ".info/connected");
@@ -471,7 +464,6 @@
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
             
-            // 處理 15 秒斷線寬限期
             const onlinePlayers = dbState.players.map((p, i) => p === "online" ? i : -1).filter(i => i !== -1);
             const isHost = onlinePlayers.length > 0 && onlinePlayers[0] === mySeat;
 
@@ -518,6 +510,7 @@
         };
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
+    
     document.getElementById('btn-force-reset').onclick = () => {
         if(confirm("確定要中斷這局，清空所有人的手牌重新開始嗎？")) {
             const updates = {
@@ -542,6 +535,7 @@
         } catch (err) { console.log("瀏覽器不支援強制橫向，依賴 CSS 提示"); }
 
         mySeat = seatIdx; localStorage.setItem('mySeat', mySeat); 
+        document.getElementById('my-identity').style.display = 'block';
         document.getElementById('my-identity').innerText = `座位：玩家 ${mySeat + 1}`;
         
         const myPlayerRef = ref(db, `room/table1/players/${seatIdx}`);
@@ -655,12 +649,12 @@
                 winDesc.innerText = `農民 (玩家 ${winSeat+1}) 率先清空手牌！\n總倍數: ${currentMultiplier} 倍`;
                 winTitle.innerText = !amILandlord ? "🏆 恭喜獲勝 🏆" : "💀 遺憾落敗 💀";
             }
-            winTitle.className = (isWinnerLandlord && amILandlord) || (!isWinnerLandlord && !amILandlord) ? "result-title win" : "result-title lose";
+            winTitle.style.color = (isWinnerLandlord && amILandlord) || (!isWinnerLandlord && !amILandlord) ? "#2ecc71" : "#e74c3c";
             
             scoreBoard.innerHTML = scores.map((score, idx) => {
                 const isMe = idx === mySeat ? "(你)" : ""; const role = idx === landSeat ? "👑" : "🌾";
-                const sign = score > 0 ? "+" : ""; const colorClass = score > 0 ? "score-pos" : "score-neg";
-                return `<div class="score-row"><span>${role} P${idx+1} ${isMe}</span><span class="${colorClass}">${sign}${score}</span></div>`;
+                const sign = score > 0 ? "+" : ""; const colorStyle = score > 0 ? "color:#2ecc71;" : "color:#e74c3c;";
+                return `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${role} P${idx+1} ${isMe}</span><span style="${colorStyle}">${sign}${score}</span></div>`;
             }).join('');
         } else { gameOverOverlay.style.display = 'none'; }
 
@@ -672,7 +666,7 @@
         const btnReclaim = document.getElementById('btn-reclaim');
         if (btnReclaim) {
             if (mySeat !== -1 && dbState.players[mySeat] === "bot") {
-                btnReclaim.style.display = "block";
+                btnReclaim.style.display = "inline-block";
                 document.getElementById('call-controls').style.display = 'none';
                 document.getElementById('game-controls').style.display = 'none';
             } else {
@@ -689,7 +683,7 @@
         }
 
         const noticeOverlay = document.getElementById('mobile-notice-overlay');
-        noticeOverlay.style.display = (dbState.gameState === "calling" && isMyTurn) ? 'block' : 'none';
+        noticeOverlay.style.display = (isMyTurn && dbState.gameState !== "waiting") ? 'block' : 'none';
 
         const deskCards = dbState.cards?.desk || [];
         document.getElementById('btn-pass').disabled = (deskCards.length === 0);
@@ -713,7 +707,6 @@
                     if (res.length > 0) { combos.push({ name: `✨ 連對`, options: res }); break; }
                 }
                 
-                // 新增：自由出牌時的「三條」快捷鍵
                 const counts = {}; myHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
                 const threeKeys = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => cardWeights[a] - cardWeights[b]);
                 if (threeKeys.length > 0) combos.push({ name: `✨ 三條`, options: threeKeys.map(k => myHand.filter(c => c.num === k).slice(0, 3)) });
@@ -738,7 +731,6 @@
                     const res = getAllThreeWithPairs(myHand, deskPattern.weight);
                     if (res.length > 0) combos.push({ name: `💡 跟牌：三帶一對`, options: res });
                 } 
-                // 新增：跟牌時的 單張、對子、三條 快捷鍵
                 else if (deskPattern.type === "單張") {
                     const res = myHand.filter(c => cardWeights[c.num] > deskPattern.weight).map(c => [c]);
                     if (res.length > 0) combos.push({ name: `💡 跟牌：單張`, options: res });
@@ -804,9 +796,11 @@
         deskCards.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = `card ${['♥','♦'].includes(card.suit) ? 'red' : ''}`;
+            cardEl.style.marginLeft = '-45px'; // 讓出牌疊緊一點
             cardEl.innerHTML = `<div>${card.num}</div><div class="suit-bottom">${card.suit}</div>`;
             deskZone.appendChild(cardEl);
         });
+        if (deskZone.firstChild) deskZone.firstChild.style.marginLeft = '0';
     }
 
     function dealCards() {
@@ -975,14 +969,10 @@
                     } 
                     else {
                         const deskPattern = analyzeCardPattern(deskCards);
-                        
-                        // --- 【新增大腦區塊 1：陣營判斷與隊友保護】 ---
                         const isLandlord = (activeTurn === dbState.landlord);
-                        // passCount 為 1 代表上一家出的牌，passCount 為 0 代表上上家出的牌
                         const lastPlayerIdx = dbState.passCount === 1 ? (activeTurn + 2) % 3 : (activeTurn + 1) % 3;
-                        const isTeammate = !isLandlord && (lastPlayerIdx !== dbState.landlord); // 如果我都不是地主，且出牌的也不是地主，他就是我隊友
+                        const isTeammate = !isLandlord && (lastPlayerIdx !== dbState.landlord);
 
-                        // 如果桌上的牌是隊友出的，而且已經是大牌 (權重 > 11，大約是 J 以上)，且我手上還有一堆牌 (> 2張)，就選擇放水「不出」
                         let shouldPassForTeammate = false;
                         if (isTeammate && deskPattern.weight > 11 && aiHand.length > 2) {
                             shouldPassForTeammate = true;
@@ -996,9 +986,7 @@
                             else if (deskPattern.type === "三條") { const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight); if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3); }
                             else if (deskPattern.type === "💥 炸彈 💥") { const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight); if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); }
 
-                            // --- 【新增大腦區塊 2：炸彈節流閥】 ---
                             if (!cardsToPlay && deskPattern.type !== "🚀 火箭 (王炸)") {
-                                // 只有當桌面的牌具有威脅性 (大於 J)，或者自己已經被逼到絕境 (剩 5 張以內)，才願意動用炸彈
                                 const isDesperate = aiHand.length <= 5;
                                 const isDeskThreatening = deskPattern.weight > 10;
                                 
