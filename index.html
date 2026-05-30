@@ -88,8 +88,10 @@
         }
 
         .turn-indicator {
-            position: absolute;
-            top: 10%;
+            position: fixed; /* 改用 fixed 確保相對於整個螢幕定位 */
+            top: 50%;
+            left: 20px; /* 貼齊畫面左側，保留 20px 安全邊距 */
+            transform: translateY(-50%); /* 透過 Y 軸偏移確保完美垂直置中 */
             background: #f39c12;
             color: white;
             padding: 10px 30px;
@@ -141,10 +143,12 @@
 
         .smart-actions {
             position: fixed;
-            bottom: 175px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            right: 20px; /* 貼齊畫面右側，保留 20px 安全邊距 */
+            left: auto; /* 覆蓋掉原本的 left 數值 */
+            transform: translateY(-50%); /* 移除 X 軸偏移，改為 Y 軸垂直置中 */
             display: flex;
+            flex-direction: column; /* 關鍵：改為垂直排列，避免按鈕超出螢幕邊緣 */
             gap: 10px;
             z-index: 100;
         }
