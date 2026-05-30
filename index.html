@@ -1064,26 +1064,69 @@
 
                     let cardsToPlay = null;
 
+                    // --- 【AI 團戰意識核心解析】 ---
+                    const isLandlord = (activeTurn === dbState.landlord);
+                    const nextPlayerIdx = (activeTurn + 1) % 3;
+                    const prevPlayerIdx = (activeTurn + 2) % 3;
+                    const isNextTeammate = !isLandlord && (nextPlayerIdx !== dbState.landlord);
+                    
+                    // 準確判斷桌上目前的牌是誰打的
+                    const actualLastPlayIdx = dbState.passCount === 1 ? nextPlayerIdx : prevPlayerIdx;
+                    const isDeskTeammate = !isLandlord && (actualLastPlayIdx !== dbState.landlord);
+                    const deskTeammateCardsLeft = dbState.cards[`p${actualLastPlayIdx}`]?.length || 17;
+                    const nextPlayerCardsLeft = dbState.cards[`p${nextPlayerIdx}`]?.length || 17;
+
                     if (deskCards.length === 0) {
+                        // AI 握有出牌權 (自由出牌)
                         for(let len = 10; len >= 6; len -= 2) { const res = getAllConsecutivePairs(aiHand, len, 2); if(res.length > 0) { cardsToPlay = res[0]; break; } }
                         if (!cardsToPlay) { for(let len = 12; len >= 5; len--) { const res = getAllStraights(aiHand, len, 2); if(res.length > 0) { cardsToPlay = res[0]; break; } } }
-                        if (!cardsToPlay) { const lowestCardNum = aiHand[0].num; const playCount = counts[lowestCardNum]; cardsToPlay = aiHand.filter(c => c.num === lowestCardNum).slice(0, playCount); }
+                        
+                        if (!cardsToPlay) { 
+                            if (isNextTeammate && nextPlayerCardsLeft <= 2) {
+                                // 【放水機制】下家是隊友且快贏了，刻意打最小的牌護航
+                                cardsToPlay = [aiHand[0]];
+                            } else if (!isLandlord && !isNextTeammate) {
+                                // 【頂牌機制】下家是地主，挑一張偏大的牌去擋，不讓地主過小牌
+                                const blockCard = aiHand.find(c => cardWeights[c.num] >= 8 && cardWeights[c.num] <= 13); // 挑選 8 到 K 之間
+                                if (blockCard) cardsToPlay = [blockCard];
+                                else cardsToPlay = [aiHand[aiHand.length - 1]]; // 沒有中型牌就打最大的
+                            } else {
+                                // 正常出牌：打最小的組合
+                                const lowestCardNum = aiHand[0].num; 
+                                const playCount = counts[lowestCardNum]; 
+                                cardsToPlay = aiHand.filter(c => c.num === lowestCardNum).slice(0, playCount);
+                            }
+                        }
                     } 
                     else {
+                        // AI 必須回應桌上的牌 (跟牌)
                         const deskPattern = analyzeCardPattern(deskCards);
-                        const isLandlord = (activeTurn === dbState.landlord);
-                        const lastPlayerIdx = dbState.passCount === 1 ? (activeTurn + 2) % 3 : (activeTurn + 1) % 3;
-                        const isTeammate = !isLandlord && (lastPlayerIdx !== dbState.landlord);
-
+                        
                         let shouldPassForTeammate = false;
-                        if (isTeammate && deskPattern.weight > 11 && aiHand.length > 2) {
-                            shouldPassForTeammate = true;
+                        if (isDeskTeammate) {
+                            // 【拒絕內耗機制】
+                            if (deskTeammateCardsLeft <= 2) {
+                                shouldPassForTeammate = true; // 隊友快跑了，絕對不壓
+                            } else if (deskPattern.weight > 10 && aiHand.length > 4) {
+                                shouldPassForTeammate = true; // 隊友打出 J 以上的大牌，AI 選擇保留實力不出
+                            }
                         }
 
                         if (!shouldPassForTeammate) {
                             if (deskPattern.type === "順子") { const res = getAllStraights(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
                             else if (deskPattern.type === "連對") { const res = getAllConsecutivePairs(aiHand, deskCards.length, deskPattern.weight); if (res.length > 0) cardsToPlay = res[0]; }
-                            else if (deskPattern.type === "單張") { const playCardIdx = aiHand.findIndex(card => cardWeights[card.num] > deskPattern.weight); if (playCardIdx > -1) cardsToPlay = [aiHand[playCardIdx]]; }
+                            else if (deskPattern.type === "單張") { 
+                                const validCards = aiHand.filter(card => cardWeights[card.num] > deskPattern.weight);
+                                if (validCards.length > 0) {
+                                    if (!isLandlord && !isNextTeammate && deskPattern.weight < 10) {
+                                        // 【跟牌頂牌】即使是跟牌，也不要拿剛好大一點的去送頭，盡量拿 10 以上的壓制地主
+                                        const blockCard = validCards.find(c => cardWeights[c.num] >= 10);
+                                        cardsToPlay = blockCard ? [blockCard] : [validCards[0]];
+                                    } else {
+                                        cardsToPlay = [validCards[0]]; 
+                                    }
+                                }
+                            }
                             else if (deskPattern.type === "對子") { const pairKey = Object.keys(counts).find(k => counts[k] >= 2 && cardWeights[k] > deskPattern.weight); if (pairKey) cardsToPlay = aiHand.filter(c => c.num === pairKey).slice(0, 2); }
                             else if (deskPattern.type === "三條") { const tripleKey = Object.keys(counts).find(k => counts[k] >= 3 && cardWeights[k] > deskPattern.weight); if (tripleKey) cardsToPlay = aiHand.filter(c => c.num === tripleKey).slice(0, 3); }
                             else if (deskPattern.type === "💥 炸彈 💥") { const bombKey = Object.keys(counts).find(k => counts[k] === 4 && (100 + cardWeights[k]) > deskPattern.weight); if (bombKey) cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); }
@@ -1092,7 +1135,8 @@
                                 const isDesperate = aiHand.length <= 5;
                                 const isDeskThreatening = deskPattern.weight > 10;
                                 
-                                if (isDesperate || isDeskThreatening) {
+                                // 【防誤炸機制】威脅很大或是被逼急了才炸，而且絕對不炸隊友
+                                if (!isDeskTeammate && (isDesperate || isDeskThreatening)) {
                                     const bombKey = Object.keys(counts).find(k => counts[k] === 4);
                                     if (bombKey && deskPattern.type !== "💥 炸彈 💥") { cardsToPlay = aiHand.filter(c => c.num === bombKey).slice(0, 4); } 
                                     else if (counts['大'] && counts['小']) { cardsToPlay = aiHand.filter(c => c.num === '大' || c.num === '小'); }
