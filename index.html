@@ -132,16 +132,25 @@
         
         .btn-call { background: #3498db; }
         .btn-pass { background: #e74c3c; }
-        .btn-smart { background: #9b59b6; color: white; border: none; padding: 8px 16px; border-radius: 15px; cursor: pointer; }
-
+        .btn-smart { 
+            background: #9b59b6; 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            direction: ltr; /* 把文字閱讀方向改回正常的「左到右」，抵銷外層的 rtl 設定 */
+        }
         .smart-actions {
             position: fixed;
             top: 50%;
             right: 20px;
             left: auto;
             transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-auto-flow: column; /* 讓內容先填滿直行，滿了再換到下一個直行 */
+            grid-template-rows: repeat(4, auto); /* 物理限制：最多只能有 4 橫列 */
+            direction: rtl; /* 關鍵魔法：將容器排版方向改為「右到左」，這樣第二欄就會自動出現在左邊！ */
             gap: 10px;
             z-index: 100;
         }
