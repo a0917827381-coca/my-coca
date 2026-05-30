@@ -88,15 +88,10 @@
         }
 
         .turn-indicator {
-            position: fixed; /* 改用 fixed 確保相對於整個螢幕定位 */
-            top: 50%;
-            left: 20px; /* 貼齊畫面左側，保留 20px 安全邊距 */
-            transform: translateY(-50%); /* 透過 Y 軸偏移確保完美垂直置中 */
+            /* 只保留視覺外觀的設定，位置交給 HTML 的 style 去控制 */
             background: #f39c12;
             color: white;
-            padding: 10px 30px;
             border-radius: 20px;
-            font-size: 18px;
             font-weight: bold;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             border: 2px solid white;
@@ -201,23 +196,26 @@
 <div class="game-container">
     
     <div class="header-top">
-        <div class="header-left">
+        <div class="header-left" style="display: flex; align-items: center; gap: 8px;">
             <button id="btn-force-reset">🔄 重置牌局</button>
             <button id="btn-fullscreen">🔲 全螢幕</button>
+            
+            <div id="mobile-notice-overlay" class="turn-indicator" style="display:none; position: static; transform: none; padding: 4px 12px; font-size: 14px; margin: 0; white-space: nowrap;">🔔 輪到您 🔔</div>
         </div>
-        <div class="header-center">
+        
+        <div class="header-center" style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <span id="log">請選位開局，斷線時電腦將自動接管</span>
+            
+            <div id="my-identity" style="background: rgba(0,0,0,0.6); border: 1px solid #555; padding: 3px 15px; border-radius: 12px; font-size: 12px; color: #fff; display: none;"></div>
         </div>
+        
         <div class="header-right">
             <span id="multiplier-badge">1 倍</span>
             <span id="landlord-identity">叫分: 0</span>
         </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; padding: 0 20px; z-index: 20;">
-        <div id="my-identity" style="background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 4px; display: none;"></div>
-        <button id="btn-clear-room">清空房間</button>
-    </div>
+    <button id="btn-clear-room" style="position: absolute; right: 15px; top: 55px; background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; z-index: 50;">清空房間</button>
 
     <div id="seat-selection" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 150; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; text-align: center; width: 80%;">
         <h3 style="margin-top:0;">請選擇座位入座</h3>
@@ -232,8 +230,6 @@
     </div>
 
     <div class="battlefield">
-        <div id="mobile-notice-overlay" class="turn-indicator" style="display:none;">🔔 輪到您 🔔</div>
-        
         <div id="history-box"></div>
         <div id="mini-dipai-box"></div>
         
