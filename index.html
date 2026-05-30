@@ -311,11 +311,12 @@
         if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
     });
 
+    // 加入 extraMultiplier 預設值為 1
     const initialGameState = {
         players: [null, null, null], cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
         history: ["無", "無", "無"], logs: "請選位開局，斷線時電腦將自動接管", gameState: "waiting", 
         currentTurn: 0, landlord: -1, callCount: 0, passCount: 0, highestBid: 0, highestBidder: -1,   
-        winner: -1, lastPattern: "無", bombCount: 0 
+        winner: -1, lastPattern: "無", extraMultiplier: 1 
     };
     
     let dbState = JSON.parse(JSON.stringify(initialGameState));
@@ -463,7 +464,7 @@
                 currentTurn: typeof data.currentTurn === 'number' ? data.currentTurn : 0, landlord: typeof data.landlord === 'number' ? data.landlord : -1,
                 callCount: typeof data.callCount === 'number' ? data.callCount : 0, passCount: typeof data.passCount === 'number' ? data.passCount : 0,
                 highestBid: typeof data.highestBid === 'number' ? data.highestBid : 0, highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1,
-                winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", bombCount: typeof data.bombCount === 'number' ? data.bombCount : 0
+                winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", extraMultiplier: typeof data.extraMultiplier === 'number' ? data.extraMultiplier : 1
             };
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
@@ -510,7 +511,7 @@
             "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
             "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
             "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
-            "lastPattern": "無", "bombCount": 0, "logs": "等待發牌中..."
+            "lastPattern": "無", "extraMultiplier": 1, "logs": "等待發牌中..."
         };
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
@@ -521,7 +522,7 @@
                 "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
                 "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
                 "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
-                "lastPattern": "無", "bombCount": 0, "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌！請重新發牌。`
+                "lastPattern": "無", "extraMultiplier": 1, "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌！請重新發牌。`
             };
             update(roomRef, updates); 
         }
@@ -578,7 +579,8 @@
             }
         }
 
-        const currentMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * Math.pow(2, dbState.bombCount);
+        // 新版倍率計算方式：底分 x 累積的額外倍率
+        const currentMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * (dbState.extraMultiplier || 1);
         document.getElementById('multiplier-badge').innerText = `${currentMultiplier} 倍`;
         document.getElementById('landlord-identity').innerText = dbState.landlord !== -1 ? `👑 P${dbState.landlord + 1}` : `叫分: ${dbState.highestBid}`;
 
@@ -800,7 +802,7 @@
         deskCards.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = `card ${['♥','♦'].includes(card.suit) ? 'red' : ''}`;
-            cardEl.style.marginLeft = '-45px'; // 讓出牌疊緊一點
+            cardEl.style.marginLeft = '-45px'; 
             cardEl.innerHTML = `<div>${card.num}</div><div class="suit-bottom">${card.suit}</div>`;
             deskZone.appendChild(cardEl);
         });
@@ -828,7 +830,7 @@
             "cards/p2": deck.slice(34, 51), "cards/dipai": deck.slice(51, 54), "cards/desk": [],
             "history": ["無", "無", "無"], "gameState": "calling", "currentTurn": Math.floor(Math.random() * 3),
             "callCount": 0, "landlord": -1, "passCount": 0, "highestBid": 0, "highestBidder": -1,
-            "winner": -1, "lastPattern": "無", "bombCount": 0, "logs": `【系統發牌】請競標叫分。`
+            "winner": -1, "lastPattern": "無", "extraMultiplier": 1, "logs": `【系統發牌】請競標叫分。`
         });
     }
 
@@ -867,6 +869,7 @@
         update(roomRef, updates);
     };
 
+    // 真人玩家出牌處理 (包含新的倍率規則)
     document.getElementById('btn-play').onclick = () => {
         if (selectedCards.length === 0) { alert("請先選牌！"); return; }
         const myHandCards = dbState.cards[`p${mySeat}`] || [];
@@ -896,16 +899,34 @@
         const nextTurn = (dbState.currentTurn + 1) % 3; const updates = {};
         updates[`cards/p${mySeat}`] = remainingCards; updates[`cards/desk`] = playCards;
         
+        // --- 【新增倍率計算系統】 ---
+        const isFinal = remainingCards.length === 0;
+        let turnMult = 1;
+        let effectLog = "";
+
+        if (currentPattern.type === "順子" && playCards.length >= 7) { turnMult *= 2; effectLog = " (長順 x2)"; }
+        if (currentPattern.type === "連對" && playCards.length >= 8) { turnMult *= 2; effectLog = " (長連對 x2)"; }
+        if (currentPattern.type === "💥 炸彈 💥" || currentPattern.type === "🚀 火箭 (王炸)") {
+            turnMult *= 2; effectLog = " (炸彈 x2)";
+            if (deskCards.length > 0) { turnMult *= 2; effectLog += " (壓制 x2)"; }
+            if (isFinal) { turnMult *= 4; effectLog += " (絕殺 x4)"; }
+        }
+
+        if (turnMult > 1) {
+            updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
+        }
+        // ------------------------
+        
         const cardsText = playCards.map(c => `${c.suit}${c.num}`).join(' ');
         if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(currentPattern.type)) {
-            triggerEffectPopup(currentPattern.type); updates[`history/${mySeat}`] = `🔥 ${currentPattern.type}`; updates[`bombCount`] = dbState.bombCount + 1;
+            triggerEffectPopup(currentPattern.type); updates[`history/${mySeat}`] = `🔥 ${currentPattern.type}`; 
         } else { updates[`history/${mySeat}`] = `[${currentPattern.type}] ${cardsText}`; }
         
         updates[`passCount`] = 0; 
         if (remainingCards.length === 0) {
             updates[`gameState`] = "gameOver"; updates[`winner`] = mySeat; updates[`logs`] = `🎉 遊戲結束！玩家 ${mySeat + 1} 獲勝！`;
         } else {
-            updates[`currentTurn`] = nextTurn; updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}。輪到 玩家 ${nextTurn + 1}`;
+            updates[`currentTurn`] = nextTurn; updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}${effectLog}。輪到 玩家 ${nextTurn + 1}`;
         }
         update(roomRef, updates);
     };
@@ -925,6 +946,7 @@
         update(roomRef, updates);
     };
 
+    // AI 託管出牌處理 (同步支援倍率疊加)
     function handleAI() {
         const activeTurn = dbState.currentTurn;
         const playersList = dbState.players || [null, null, null];
@@ -1009,26 +1031,48 @@
                         cardsToPlay.forEach(pc => { const idx = remaining.findIndex(c => c.suit === pc.suit && c.num === pc.num); if(idx > -1) remaining.splice(idx, 1); });
 
                         cardsLeftCount = remaining.length; updates[`cards/p${activeTurn}`] = remaining; updates[`cards/desk`] = cardsToPlay;
-                        if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) { updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`; updates[`bombCount`] = dbState.bombCount + 1; } 
+                        
+                        // --- 【AI 倍率計算系統】 ---
+                        const isFinal = remaining.length === 0;
+                        let turnMult = 1;
+                        let effectLog = "";
+
+                        if (playPattern.type === "順子" && cardsToPlay.length >= 7) { turnMult *= 2; effectLog = " (長順 x2)"; }
+                        if (playPattern.type === "連對" && cardsToPlay.length >= 8) { turnMult *= 2; effectLog = " (長連對 x2)"; }
+                        if (playPattern.type === "💥 炸彈 💥" || playPattern.type === "🚀 火箭 (王炸)") {
+                            turnMult *= 2; effectLog = " (炸彈 x2)";
+                            if (deskCards.length > 0) { turnMult *= 2; effectLog += " (壓制 x2)"; }
+                            if (isFinal) { turnMult *= 4; effectLog += " (絕殺 x4)"; }
+                        }
+
+                        if (turnMult > 1) {
+                            updates[`extraMultiplier`] = (dbState.extraMultiplier || 1) * turnMult;
+                        }
+                        // ------------------------
+
+                        if (["💥 炸彈 💥", "🚀 火箭 (王炸)"].includes(playPattern.type)) { updates[`history/${activeTurn}`] = `🔥 ${playPattern.type}`; } 
                         else { updates[`history/${activeTurn}`] = `${playPattern.type}: ` + cardsToPlay.map(c=>c.suit+c.num).join(' '); }
                         updates[`passCount`] = 0;
+                        
+                        if (cardsLeftCount === 0) {
+                            updates[`gameState`] = "gameOver"; updates[`winner`] = activeTurn; updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
+                        } else {
+                            updates[`currentTurn`] = nextTurn;
+                            updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 打出 ${updates[`history/${activeTurn}`]}${effectLog}。`; 
+                        }
                     } else {
                         updates[`history/${activeTurn}`] = "不出";
                         if (currentPassCount >= 2) { updates[`cards/desk`] = []; updates[`passCount`] = 0; } 
                         else { updates[`passCount`] = currentPassCount; }
-                    }
-
-                    if (cardsLeftCount === 0 && updates[`cards/p${activeTurn}`]) {
-                        updates[`gameState`] = "gameOver"; updates[`winner`] = activeTurn; updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
-                    } else {
-                        if (updates[`passCount`] === 0 && !updates[`cards/p${activeTurn}`] && currentPassCount >= 2) {
+                        
+                        if (currentPassCount >= 2) {
                             updates[`currentTurn`] = nextTurn; updates[`logs`] = `大家都不出！回合結束。由 玩家 ${nextTurn + 1} 重新掌控出牌權！`;
                         } else {
                             updates[`currentTurn`] = nextTurn;
-                            if (updates[`cards/p${activeTurn}`]) { updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 打出 ${updates[`history/${activeTurn}`]}。`; } 
-                            else { updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 壓不住選擇不出。`; }
+                            updates[`logs`] = `【電腦】玩家 ${activeTurn + 1} 壓不住選擇不出。`; 
                         }
                     }
+
                     update(roomRef, updates).then(() => { isAIThinking = false; }).catch(() => { isAIThinking = false; });
                 }, 1200);
             }
