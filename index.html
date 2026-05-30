@@ -261,11 +261,13 @@
     
     <div id="game-over-overlay" style="display:none; flex-direction:column; align-items:center; position:fixed; top:0; left:0; width:100%; height: 100%; background:rgba(0,0,0,0.85); z-index:500; justify-content: center;">
         <h2 id="result-title" style="font-size: 36px; margin-bottom: 10px; color: #f1c40f;"></h2>
-        <p id="result-desc" style="font-size: 20px; text-align: center; white-space: pre-line; margin-bottom: 20px;"></p>
+        <p id="result-desc" style="font-size: 20px; text-align: center; white-space: pre-line; margin-bottom: 15px;"></p>
         
-        <div id="result-scores" style="font-size: 20px; width: 80%; max-width: 350px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
-        
-        <button id="btn-restart-game" style="position: absolute; right: 5%; top: 50%; transform: translateY(-50%); padding: 15px 30px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">🃏 下一局</button>
+        <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 20px; width: 100%; max-width: 650px; padding: 0 15px; box-sizing: border-box;">
+            <div id="result-scores" style="flex: 1; font-size: 18px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
+            
+            <button id="btn-restart-game" style="flex-shrink: 0; padding: 15px 25px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap;">🃏 下一局</button>
+        </div>
     </div>
 
     <!-- 自訂遊戲警告彈窗 -->
