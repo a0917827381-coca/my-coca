@@ -132,15 +132,8 @@
         
         .btn-call { background: #3498db; }
         .btn-pass { background: #e74c3c; }
-        .btn-smart { 
-            background: #9b59b6; 
-            color: white; 
-            border: none; 
-            padding: 8px 16px; 
-            border-radius: 15px; 
-            cursor: pointer; 
-            direction: ltr; /* 把文字閱讀方向改回正常的「左到右」，抵銷外層的 rtl 設定 */
-        }
+        .btn-smart { background: #9b59b6; color: white; border: none; padding: 8px 16px; border-radius: 15px; cursor: pointer; direction: ltr; }
+
         .smart-actions {
             position: fixed;
             top: 50%;
@@ -148,9 +141,9 @@
             left: auto;
             transform: translateY(-50%);
             display: grid;
-            grid-auto-flow: column; /* 讓內容先填滿直行，滿了再換到下一個直行 */
-            grid-template-rows: repeat(4, auto); /* 物理限制：最多只能有 4 橫列 */
-            direction: rtl; /* 關鍵魔法：將容器排版方向改為「右到左」，這樣第二欄就會自動出現在左邊！ */
+            grid-auto-flow: column; 
+            grid-template-rows: repeat(4, auto); 
+            direction: rtl; 
             gap: 10px;
             z-index: 100;
         }
@@ -216,7 +209,7 @@
         
         <div class="header-right">
             <span id="multiplier-badge">1 倍</span>
-            <span id="landlord-identity">叫分: 0</span>
+            <span id="landlord-identity">底倍: 1</span>
         </div>
     </div>
 
@@ -246,10 +239,8 @@
     <div class="smart-actions" id="smart-actions"></div>
 
     <div class="controls" id="call-controls" style="display:none;">
-        <button id="btn-call-1" class="btn-call" onclick="submitCall(1)">1分</button>
-        <button id="btn-call-2" class="btn-call" onclick="submitCall(2)">2分</button>
-        <button id="btn-call-3" class="btn-call" onclick="submitCall(3)">3分</button>
-        <button id="btn-pass-call" class="btn-pass" onclick="submitCall(0)">不叫</button>
+        <button id="btn-action-positive" class="btn-call" onclick="submitCall('positive')">叫地主</button>
+        <button id="btn-action-negative" class="btn-pass" onclick="submitCall('negative')">不叫</button>
     </div>
 
     <div class="controls" id="game-controls" style="display:none;">
@@ -265,7 +256,6 @@
         
         <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 20px; width: 100%; max-width: 650px; padding: 0 15px; box-sizing: border-box;">
             <div id="result-scores" style="flex: 1; font-size: 18px; text-align: left; background: #222; padding: 15px; border-radius: 8px;"></div>
-            
             <button id="btn-restart-game" style="flex-shrink: 0; padding: 15px 25px; background: #3498db; color: white; border-radius: 25px; border: none; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap;">🃏 下一局</button>
         </div>
     </div>
@@ -312,7 +302,7 @@
         '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 
         'J':11, 'Q':12, 'K':13, 'A':14, '2':15, '小':16, '大':17
     };
-    const BASE_SCORE = 100; // 基礎底分
+    const BASE_SCORE = 100;
 
     let savedSeat = localStorage.getItem('mySeat');
     let mySeat = savedSeat !== null ? parseInt(savedSeat) : -1;
@@ -323,11 +313,11 @@
         if (mySeat !== -1) update(roomRef, { [`players/${mySeat}`]: "offline" });
     });
 
-    // 加入 chips 陣列紀錄總籌碼
+    // 替換掉原本的叫分變數，導入 turnQueue 與 bidMultiplier
     const initialGameState = {
         players: [null, null, null], cards: { p0: [], p1: [], p2: [], desk: [], dipai: [] },
         history: ["無", "無", "無"], logs: "請選位開局，斷線時電腦將自動接管", gameState: "waiting", 
-        currentTurn: 0, landlord: -1, callCount: 0, passCount: 0, highestBid: 0, highestBidder: -1,   
+        currentTurn: 0, landlord: -1, passCount: 0, turnQueue: [], highestBidder: -1, bidMultiplier: 1,   
         winner: -1, lastPattern: "無", extraMultiplier: 1, chips: [12000, 12000, 12000]
     };
     
@@ -474,11 +464,12 @@
                 players: sanitizePlayers(data.players), cards: data.cards || { p0: [], p1: [], p2: [], desk: [], dipai: [] },
                 history: data.history || ["無", "無", "無"], logs: data.logs || "遊戲進行中", gameState: data.gameState || "waiting",
                 currentTurn: typeof data.currentTurn === 'number' ? data.currentTurn : 0, landlord: typeof data.landlord === 'number' ? data.landlord : -1,
-                callCount: typeof data.callCount === 'number' ? data.callCount : 0, passCount: typeof data.passCount === 'number' ? data.passCount : 0,
-                highestBid: typeof data.highestBid === 'number' ? data.highestBid : 0, highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1,
+                passCount: typeof data.passCount === 'number' ? data.passCount : 0, 
+                turnQueue: data.turnQueue || [], highestBidder: typeof data.highestBidder === 'number' ? data.highestBidder : -1, 
+                bidMultiplier: typeof data.bidMultiplier === 'number' ? data.bidMultiplier : 1,
                 winner: typeof data.winner === 'number' ? data.winner : -1, lastPattern: data.lastPattern || "無", 
                 extraMultiplier: typeof data.extraMultiplier === 'number' ? data.extraMultiplier : 1,
-                chips: data.chips || [12000, 12000, 12000] // 確保籌碼狀態被抓取
+                chips: data.chips || [12000, 12000, 12000]
             };
             if (!dbState.cards.desk) dbState.cards.desk = [];
             if (!dbState.cards.dipai) dbState.cards.dipai = [];
@@ -512,7 +503,6 @@
 
     checkReconnect();
 
-    // 拔除 confirm，直接重置房間資料與籌碼
     document.getElementById('btn-clear-room').onclick = () => {
         if (mySeat !== -1) onDisconnect(ref(db, `room/table1/players/${mySeat}`)).cancel();
         localStorage.removeItem('mySeat');
@@ -522,28 +512,26 @@
         });
     };
 
-    // 重新開始：檢查是否有人破產，決定是否重置籌碼
     document.getElementById('btn-restart-game').onclick = () => {
         let nextChips = [...(dbState.chips || [12000, 12000, 12000])];
         if (nextChips.some(c => c <= 0)) {
-            nextChips = [12000, 12000, 12000]; // 破產則重置整輪籌碼
+            nextChips = [12000, 12000, 12000]; 
         }
         
         const updates = {
             "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
             "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
-            "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
+            "passCount": 0, "turnQueue": [], "highestBidder": -1, "bidMultiplier": 1, "winner": -1,
             "lastPattern": "無", "extraMultiplier": 1, "chips": nextChips, "logs": "等待發牌中..."
         };
         update(roomRef, updates).then(() => { document.getElementById('game-over-overlay').style.display = 'none'; });
     };
     
-    // 拔除 confirm，強制重置牌局(帶籌碼重置)
     document.getElementById('btn-force-reset').onclick = () => {
         const updates = {
             "cards/p0": [], "cards/p1": [], "cards/p2": [], "cards/desk": [], "cards/dipai": [],
             "history": ["無", "無", "無"], "gameState": "waiting", "currentTurn": 0, "landlord": -1,
-            "callCount": 0, "passCount": 0, "highestBid": 0, "highestBidder": -1, "winner": -1,
+            "passCount": 0, "turnQueue": [], "highestBidder": -1, "bidMultiplier": 1, "winner": -1,
             "lastPattern": "無", "extraMultiplier": 1, "chips": [12000, 12000, 12000], 
             "logs": `【系統】玩家 ${mySeat + 1} 已強制重置牌桌與籌碼！`
         };
@@ -602,9 +590,9 @@
             }
         }
 
-        const currentMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * (dbState.extraMultiplier || 1);
+        const currentMultiplier = (dbState.bidMultiplier || 1) * (dbState.extraMultiplier || 1);
         document.getElementById('multiplier-badge').innerText = `${currentMultiplier} 倍`;
-        document.getElementById('landlord-identity').innerText = dbState.landlord !== -1 ? `👑 P${dbState.landlord + 1}` : `叫分: ${dbState.highestBid}`;
+        document.getElementById('landlord-identity').innerText = dbState.landlord !== -1 ? `👑 P${dbState.landlord + 1}` : `底倍: ${dbState.bidMultiplier || 1}`;
 
         const historyBox = document.getElementById('history-box');
         const hist = dbState.history || ["無", "無", "無"];
@@ -632,7 +620,6 @@
             if (playersList[i] === "offline") statusText = " <span style='color:#ff9800; font-size:10px;'>(連線中)</span>";
             else if (playersList[i] === "bot") statusText = " <span style='color:#9e9e9e; font-size:10px;'>(AI 託管)</span>";
 
-            // 在名稱前面加入當前籌碼狀態
             historyHTML += `<div class="${classNames}"><span class="chip-badge">[💰 ${chipsList[i]}]</span>${roleIcon}P${i+1}${statusText}${countDisplay}: ${hist[i]}</div>`;
         }
         historyBox.innerHTML = historyHTML;
@@ -669,7 +656,6 @@
             const winSeat = dbState.winner; const landSeat = dbState.landlord;
             const isWinnerLandlord = (winSeat === landSeat); const amILandlord = (mySeat === landSeat);
             
-            // 計算這次結算的得失分 (僅供介面顯示)
             const finalAmount = BASE_SCORE * currentMultiplier; 
             let scoreDelta = [0, 0, 0];
             
@@ -684,7 +670,6 @@
             }
             winTitle.style.color = (isWinnerLandlord && amILandlord) || (!isWinnerLandlord && !amILandlord) ? "#2ecc71" : "#e74c3c";
             
-            // 判斷是否有人破產
             const hasBankrupt = chipsList.some(c => c <= 0);
             restartBtn.innerText = hasBankrupt ? "🔄 破產！重新一輪" : "🃏 下一局";
             if(hasBankrupt) restartBtn.style.background = "#e74c3c"; else restartBtn.style.background = "#3498db";
@@ -692,7 +677,6 @@
             scoreBoard.innerHTML = scoreDelta.map((delta, idx) => {
                 const isMe = idx === mySeat ? "(你)" : ""; const role = idx === landSeat ? "👑" : "🌾";
                 const sign = delta > 0 ? "+" : ""; const colorStyle = delta > 0 ? "color:#2ecc71;" : "color:#e74c3c;";
-                // 同時顯示單局加減分與最新籌碼餘額
                 return `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px;">
                             <span>${role} P${idx+1} ${isMe}</span>
                             <div style="text-align:right;">
@@ -721,10 +705,11 @@
             }
         }
 
+        // 更新競標階段按鈕的顯示文字
         if (dbState.gameState === "calling" && isMyTurn) {
-            document.getElementById('btn-call-1').disabled = (dbState.highestBid >= 1);
-            document.getElementById('btn-call-2').disabled = (dbState.highestBid >= 2);
-            document.getElementById('btn-call-3').disabled = (dbState.highestBid >= 3);
+            const isFirstCall = (dbState.highestBidder === -1);
+            document.getElementById('btn-action-positive').innerText = isFirstCall ? "叫地主" : "搶地主";
+            document.getElementById('btn-action-negative').innerText = isFirstCall ? "不叫" : "不搶";
         }
 
         const noticeOverlay = document.getElementById('mobile-notice-overlay');
@@ -868,52 +853,79 @@
             const j = Math.floor(Math.random() * (i + 1));
             [deck[i], deck[j]] = [deck[j], deck[i]];
         }
+
+        // 初始化叫牌順序與佇列
+        const firstTurn = Math.floor(Math.random() * 3);
+        const turnQueue = [firstTurn, (firstTurn + 1) % 3, (firstTurn + 2) % 3];
         
         update(roomRef, {
             "players": updatedPlayers, "cards/p0": deck.slice(0, 17), "cards/p1": deck.slice(17, 34),
             "cards/p2": deck.slice(34, 51), "cards/dipai": deck.slice(51, 54), "cards/desk": [],
-            "history": ["無", "無", "無"], "gameState": "calling", "currentTurn": Math.floor(Math.random() * 3),
-            "callCount": 0, "landlord": -1, "passCount": 0, "highestBid": 0, "highestBidder": -1,
-            "winner": -1, "lastPattern": "無", "extraMultiplier": 1, "logs": `【系統發牌】請競標叫分。`
+            "history": ["無", "無", "無"], "gameState": "calling", "currentTurn": firstTurn, "turnQueue": turnQueue,
+            "highestBidder": -1, "bidMultiplier": 1, "landlord": -1, "passCount": 0,
+            "winner": -1, "lastPattern": "無", "extraMultiplier": 1, "logs": `【系統發牌】請叫地主。`
         });
     }
 
     document.getElementById('btn-start').onclick = () => { dealCards(); };
 
-    window.submitCall = function(score) {
-        const nextTurn = (dbState.currentTurn + 1) % 3;
-        const currentCount = dbState.callCount + 1;
+    // 核心重寫：支援「搶地主與反搶」的極限佇列系統
+    window.submitCall = function(actionType) {
+        const queue = dbState.turnQueue || [];
+        if (queue.length === 0) return;
+        
+        const newQueue = queue.slice(1);
         const updates = {};
-        updates[`callCount`] = currentCount;
-
-        if (score > 0) {
-            updates[`highestBid`] = score; updates[`highestBidder`] = dbState.currentTurn;
-            updates[`history/${dbState.currentTurn}`] = `叫 ${score} 分`; updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 叫了 ${score} 分！`;
+        const isFirstCall = (dbState.highestBidder === -1);
+        
+        if (actionType === 'positive') {
+            updates[`highestBidder`] = mySeat;
+            if (isFirstCall) {
+                updates[`bidMultiplier`] = 1;
+                newQueue.push(mySeat); // 關鍵：賦予首叫者最後的「反搶」資格
+                updates[`history/${mySeat}`] = "叫地主";
+                updates[`logs`] = `玩家 ${mySeat + 1} 叫地主！`;
+            } else {
+                updates[`bidMultiplier`] = (dbState.bidMultiplier || 1) * 2;
+                updates[`history/${mySeat}`] = "搶地主";
+                updates[`logs`] = `玩家 ${mySeat + 1} 搶地主！(倍率 x2)`;
+            }
         } else {
-            updates[`history/${dbState.currentTurn}`] = "不叫"; updates[`logs`] = `玩家 ${dbState.currentTurn + 1} 選擇不叫。`;
+            updates[`history/${mySeat}`] = isFirstCall ? "不叫" : "不搶";
+            updates[`logs`] = `玩家 ${mySeat + 1} ${isFirstCall ? "不叫" : "不搶"}。`;
         }
-
-        if (score === 3 || currentCount >= 3) {
-            const finalBidder = score === 3 ? dbState.currentTurn : (score > dbState.highestBid ? dbState.currentTurn : dbState.highestBidder);
-            const finalScore = score === 3 ? 3 : Math.max(score, dbState.highestBid);
-
-            if (finalScore === 0) {
-                updates[`logs`] = "三位玩家皆不叫分，本局流局！正在重新洗牌...";
+        
+        const currentHighest = updates[`highestBidder`] !== undefined ? updates[`highestBidder`] : dbState.highestBidder;
+        
+        // 判斷佇列狀態決定是否結標
+        if (newQueue.length === 0) {
+            if (currentHighest === -1) {
+                updates[`logs`] = "三位玩家皆不叫，本局流局！正在重新洗牌...";
                 update(roomRef, updates); setTimeout(() => { dealCards(); }, 2000); return;
             } else {
-                const landlordIdx = finalBidder; const currentHand = dbState.cards[`p${landlordIdx}`] || [];
-                updates[`cards/p${landlordIdx}`] = [...currentHand, ...(dbState.cards.dipai || [])];
-                updates[`landlord`] = landlordIdx; updates[`gameState`] = "playing";
-                updates[`currentTurn`] = landlordIdx; updates[`passCount`] = 0;
-                updates[`logs`] = `競標結束！玩家 ${landlordIdx + 1} 以 ${finalScore} 分成為地主！`;
+                const currentHand = dbState.cards[`p${currentHighest}`] || [];
+                updates[`cards/p${currentHighest}`] = [...currentHand, ...(dbState.cards.dipai || [])];
+                updates[`landlord`] = currentHighest; updates[`gameState`] = "playing";
+                updates[`currentTurn`] = currentHighest; updates[`passCount`] = 0;
+                updates[`logs`] += ` 競標結束！玩家 ${currentHighest + 1} 成為地主！`;
                 update(roomRef, updates); return;
             }
+        } else if (newQueue[0] === currentHighest) {
+            // 輪回到最高出價者，直接得標
+            const currentHand = dbState.cards[`p${currentHighest}`] || [];
+            updates[`cards/p${currentHighest}`] = [...currentHand, ...(dbState.cards.dipai || [])];
+            updates[`landlord`] = currentHighest; updates[`gameState`] = "playing";
+            updates[`currentTurn`] = currentHighest; updates[`passCount`] = 0;
+            updates[`logs`] += ` 競標結束！玩家 ${currentHighest + 1} 成為地主！`;
+            update(roomRef, updates); return;
+        } else {
+            // 還有對手，移交發言權
+            updates[`turnQueue`] = newQueue;
+            updates[`currentTurn`] = newQueue[0];
+            update(roomRef, updates);
         }
-        updates[`currentTurn`] = nextTurn; updates[`logs`] += ` 輪到 玩家 ${nextTurn + 1} 叫分。`;
-        update(roomRef, updates);
     };
 
-    // 計算贏家籌碼寫入資料庫
     function calculateFinalChips(winSeat, finalMultiplier) {
         let newChips = [...(dbState.chips || [12000, 12000, 12000])];
         const finalAmount = BASE_SCORE * finalMultiplier;
@@ -983,8 +995,7 @@
         updates[`passCount`] = 0; 
         if (isFinal) {
             updates[`gameState`] = "gameOver"; updates[`winner`] = mySeat; updates[`logs`] = `🎉 遊戲結束！玩家 ${mySeat + 1} 獲勝！`;
-            // 當下直接更新籌碼餘額寫入資料庫
-            const finalMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * newExtraMult;
+            const finalMultiplier = (dbState.bidMultiplier || 1) * newExtraMult;
             updates[`chips`] = calculateFinalChips(mySeat, finalMultiplier);
         } else {
             updates[`currentTurn`] = nextTurn; updates[`logs`] = `玩家 ${mySeat + 1} 打出了 ${currentPattern.type}${effectLog}。輪到 玩家 ${nextTurn + 1}`;
@@ -1026,10 +1037,15 @@
                     if (aiCounts['大']) handPower += 2; if (aiCounts['小']) handPower += 1.5; if (aiCounts['2']) handPower += aiCounts['2'];
                     Object.values(aiCounts).forEach(count => { if (count === 4) handPower += 3; });
 
-                    let targetScore = 0;
-                    if (handPower >= 5) targetScore = 3; else if (handPower >= 3) targetScore = 2; else if (handPower >= 1.5) targetScore = 1;
-                    if (targetScore <= dbState.highestBid) targetScore = 0; 
-                    submitCall(targetScore); isAIThinking = false; 
+                    const isFirstCall = (dbState.highestBidder === -1);
+                    const threshold = isFirstCall ? 1.5 : 3.0; 
+                    
+                    if (handPower >= threshold) {
+                        submitCall('positive');
+                    } else {
+                        submitCall('negative');
+                    }
+                    isAIThinking = false; 
                 }, 1200);
                 return;
             }
@@ -1113,7 +1129,7 @@
                         
                         if (cardsLeftCount === 0) {
                             updates[`gameState`] = "gameOver"; updates[`winner`] = activeTurn; updates[`logs`] = `🎉 遊戲結束！【電腦】玩家 ${activeTurn + 1} 贏了！`;
-                            const finalMultiplier = (dbState.highestBid > 0 ? dbState.highestBid : 1) * newExtraMult;
+                            const finalMultiplier = (dbState.bidMultiplier || 1) * newExtraMult;
                             updates[`chips`] = calculateFinalChips(activeTurn, finalMultiplier);
                         } else {
                             updates[`currentTurn`] = nextTurn;
