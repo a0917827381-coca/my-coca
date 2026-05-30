@@ -700,14 +700,22 @@
             const combos = [];
             
             if (deskCards.length === 0) {
+                // 累積所有長度的順子，不中斷搜尋
+                let allStraights = [];
                 for(let len = 12; len >= 5; len--) {
                     const res = getAllStraights(myHand, len, 2);
-                    if (res.length > 0) { combos.push({ name: `✨ 順子`, options: res }); break; }
+                    if (res.length > 0) { allStraights = allStraights.concat(res); }
                 }
+                if (allStraights.length > 0) { combos.push({ name: `✨ 順子`, options: allStraights }); }
+
+                // 累積所有長度的連對，不中斷搜尋
+                let allConsecutivePairs = [];
                 for(let len = 10; len >= 6; len -= 2) {
                     const res = getAllConsecutivePairs(myHand, len, 2);
-                    if (res.length > 0) { combos.push({ name: `✨ 連對`, options: res }); break; }
+                    if (res.length > 0) { allConsecutivePairs = allConsecutivePairs.concat(res); }
                 }
+                if (allConsecutivePairs.length > 0) { combos.push({ name: `✨ 連對`, options: allConsecutivePairs }); }
+                
                 
                 const counts = {}; myHand.forEach(c => counts[c.num] = (counts[c.num] || 0) + 1);
                 const threeKeys = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => cardWeights[a] - cardWeights[b]);
