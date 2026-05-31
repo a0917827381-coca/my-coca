@@ -869,35 +869,36 @@
 
     document.getElementById('btn-start').onclick = () => { dealCards(); };
 
-    // 核心重寫：支援「搶地主與反搶」的極限佇列系統
+    // 核心重寫：修復 AI 盜用玩家身分的問題
     window.submitCall = function(actionType) {
         const queue = dbState.turnQueue || [];
         if (queue.length === 0) return;
         
+        // 關鍵修正：動作執行者必須是「當前回合的座位」，不能鎖死為 mySeat
+        const actorSeat = dbState.currentTurn; 
         const newQueue = queue.slice(1);
         const updates = {};
         const isFirstCall = (dbState.highestBidder === -1);
         
         if (actionType === 'positive') {
-            updates[`highestBidder`] = mySeat;
+            updates[`highestBidder`] = actorSeat;
             if (isFirstCall) {
                 updates[`bidMultiplier`] = 1;
-                newQueue.push(mySeat); // 關鍵：賦予首叫者最後的「反搶」資格
-                updates[`history/${mySeat}`] = "叫地主";
-                updates[`logs`] = `玩家 ${mySeat + 1} 叫地主！`;
+                newQueue.push(actorSeat); // 賦予首叫者最後的「反搶」資格
+                updates[`history/${actorSeat}`] = "叫地主";
+                updates[`logs`] = `玩家 ${actorSeat + 1} 叫地主！`;
             } else {
                 updates[`bidMultiplier`] = (dbState.bidMultiplier || 1) * 2;
-                updates[`history/${mySeat}`] = "搶地主";
-                updates[`logs`] = `玩家 ${mySeat + 1} 搶地主！(倍率 x2)`;
+                updates[`history/${actorSeat}`] = "搶地主";
+                updates[`logs`] = `玩家 ${actorSeat + 1} 搶地主！(倍率 x2)`;
             }
         } else {
-            updates[`history/${mySeat}`] = isFirstCall ? "不叫" : "不搶";
-            updates[`logs`] = `玩家 ${mySeat + 1} ${isFirstCall ? "不叫" : "不搶"}。`;
+            updates[`history/${actorSeat}`] = isFirstCall ? "不叫" : "不搶";
+            updates[`logs`] = `玩家 ${actorSeat + 1} ${isFirstCall ? "不叫" : "不搶"}。`;
         }
         
         const currentHighest = updates[`highestBidder`] !== undefined ? updates[`highestBidder`] : dbState.highestBidder;
         
-        // 判斷佇列狀態決定是否結標
         if (newQueue.length === 0) {
             if (currentHighest === -1) {
                 updates[`logs`] = "三位玩家皆不叫，本局流局！正在重新洗牌...";
@@ -911,7 +912,6 @@
                 update(roomRef, updates); return;
             }
         } else if (newQueue[0] === currentHighest) {
-            // 輪回到最高出價者，直接得標
             const currentHand = dbState.cards[`p${currentHighest}`] || [];
             updates[`cards/p${currentHighest}`] = [...currentHand, ...(dbState.cards.dipai || [])];
             updates[`landlord`] = currentHighest; updates[`gameState`] = "playing";
@@ -919,7 +919,6 @@
             updates[`logs`] += ` 競標結束！玩家 ${currentHighest + 1} 成為地主！`;
             update(roomRef, updates); return;
         } else {
-            // 還有對手，移交發言權
             updates[`turnQueue`] = newQueue;
             updates[`currentTurn`] = newQueue[0];
             update(roomRef, updates);
